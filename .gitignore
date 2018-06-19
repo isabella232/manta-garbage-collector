@@ -1,0 +1,16 @@
+/node_modules
+/tmp
+/cache/
+build
+/make_stamps
+docs/*.json
+docs/*.html
+cscope.in.out
+cscope.po.out
+cscope.out
+core*
+proto/
+man
+node
+*-pkg-*.tar.bz2
+smf/manifests/bapi.xml
