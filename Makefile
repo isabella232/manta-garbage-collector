@@ -13,6 +13,7 @@
 #
 
 NAME :=				manta-garbage-collector
+CATEST :=			deps/catest/catest
 
 NODE_PREBUILT_TAG =		gz
 NODE_PREBUILT_VERSION =		v4.8.7
@@ -35,6 +36,7 @@ include ./tools/mk/Makefile.node_modules.defs
 .PHONY: all
 all: $(STAMP_NODE_PREBUILT) $(STAMP_NODE_MODULES)
 	$(NODE) --version
+
 
 #
 # Install macros and targets:
@@ -101,6 +103,13 @@ INSTALL_DIRS =			$(addprefix $(PROTO), \
 INSTALL_EXEC =			rm -f $@ && cp $< $@ && chmod 755 $@
 INSTALL_FILE =			rm -f $@ && cp $< $@ && chmod 644 $@
 
+CATEST_FILES = 			$(shell find test -name '*.test.js')
+
+.PHONY: test
+test: | $(CATEST)
+	$(CATEST) $(CATEST_FILES)
+
+$(CATEST): deps/catest/.git
 
 .PHONY: install
 install: $(INSTALL_FILES)
