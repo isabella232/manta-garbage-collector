@@ -1,0 +1,13 @@
+{
+	"shards": [
+		{
+			"srvDomain": "2.moray.orbit.example.com",
+			"cueballOptions": {
+				"resolvers": [
+					"nameservice.orbit.example.com"
+				]
+			}
+		}
+
+	]
+}

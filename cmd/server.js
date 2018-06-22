@@ -18,6 +18,9 @@ var mod_path = require('path');
 var mod_vasync = require('vasync');
 var mod_verror = require('verror');
 
+var mod_gc_manager = require('../lib/gc_manager');
+
+var lib_common = require('../lib/common');
 var lib_http_server = require('../lib/http_server');
 
 var VE = mod_verror.VError;
@@ -69,42 +72,14 @@ load_config(ctx, done)
 function
 create_moray_clients(ctx, done)
 {
-	var cfg = ctx.ctx_cfg;
-	var moray_options = ctx.ctx_cfg.moray.options;
-
 	ctx.ctx_moray_clients = {};
-
-	var moray_cfg = function (shard) {
-		var overrides = {
-			srvDomain: shard.host,
-			log: ctx.ctx_log.child({ shard: shard })
-		};
-		return mod_jsprim.mergeObjects(moray_options, overrides, null);
-	};
+	ctx.ctx_moray_cfgs = {};
 
 	mod_vasync.forEachPipeline({
 		inputs: ctx.ctx_cfg.shards,
-		func: function (shard, next) {
-			var client = mod_moray.createClient(moray_cfg(shard));
-
-			client.once('connect', function () {
-				ctx.ctx_log.debug('connected moray client: "%s"', shard);
-
-				client.removeAllListeners('error');
-				ctx.ctx_moray_clients[shard] = client;
-				next();
-			});
-
-			client.once('error', function (err) {
-				ctx.ctx_log.error({
-					shard: shard,
-					err: err
-				}, 'error while connecting moray client');
-				client.removeAllListeners('connect');
-
-				next(err);
-			});
-		},
+		func: function create_moray_client(shard, next) {
+			lib_common.create_moray_client(ctx, shard.host, next)
+		}
 	}, function (err) {
 		if (err) {
 			done(new VE(err, 'creating moray clients'));
@@ -166,7 +141,12 @@ main()
 		 * Create the restify server used for exposing configuration to
 		 * the operator.
 		 */
-		lib_http_server.create_http_server
+		lib_http_server.create_http_server,
+
+		/*
+		 * Create the gc manager
+		 */
+		mod_gc_manager.create_gc_manager
 	] }, function (err) {
 		if (err) {
 			log.fatal(err, 'startup failure');
