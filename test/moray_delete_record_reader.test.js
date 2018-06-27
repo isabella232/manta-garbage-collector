@@ -10,6 +10,7 @@
 
 var mod_assertplus = require('assert-plus');
 var mod_events = require('events');
+var mod_path = require('path');
 var mod_util = require('util');
 var mod_uuidv4 = require('uuid/v4');
 var mod_vasync = require('vasync');
@@ -21,31 +22,6 @@ var TEST_OWNER = mod_uuidv4();
 var TEST_OBJECTID = mod_uuidv4();
 var DELAY = 3000;
 
-function
-create_fake_delete_record(ctx, client, objectId, done)
-{
-	var value = {
-		dirname: 'manta_gc_test',
-		key: TEST_OWNER + '/' + objectId,
-		headers: {},
-		mtime: Date.now(),
-		name: 'manta_gc_test_obj',
-		creator: TEST_OWNER,
-		owner: TEST_OWNER,
-		objectId: objectId,
-		roles: [],
-		type: 'object',
-		vnode: 1234
-	};
-	client.putObject(lib_testcommon.MANTA_FASTDELETE_QUEUE, value.key,
-		value, {}, function (err) {
-		if (err) {
-			ctx.ctx_log.error(err, 'unable to create test object');
-			process.exit(1);
-		}
-		done();
-	});
-}
 
 (function
 main()
@@ -72,8 +48,9 @@ main()
 			});
 		},
 		function create_delete_record(ctx, shard, next) {
-			create_fake_delete_record(ctx, ctx.ctx_moray_clients[shard],
-				TEST_OBJECTID, function (err) {
+			lib_testcommon.create_fake_delete_record(ctx,
+				ctx.ctx_moray_clients[shard], TEST_OWNER, TEST_OBJECTID,
+				function (err) {
 				if (err) {
 					ctx.ctx_log.error(err, 'unabled to create delete record');
 					next(err);
@@ -83,7 +60,7 @@ main()
 			});
 		},
 		function read_delete_record(ctx, shard, next) {
-			var key = TEST_OWNER + '/' + TEST_OBJECTID;
+			var key = mod_path.join(TEST_OWNER, TEST_OBJECTID);
 			var listener = new mod_events.EventEmitter();
 			var reader = lib_testcommon.create_moray_delete_record_reader(ctx,
 				shard, listener);
@@ -91,7 +68,7 @@ main()
 			var timer = setTimeout(function () {
 				listener.removeAllListeners('record');
 				mod_assertplus.ok(false, 'did not receive record event');
-				next();
+				next(null, ctx, shard);
 			}, DELAY);
 
 			listener.once('record', function (record) {
@@ -102,13 +79,17 @@ main()
 				mod_assertplus.equal(record.key, key, 'unexpected key ' +
 					'from record sent to listener');
 				ctx.ctx_log.info('test passed');
-				next();
+				next(null, ctx, shard);
 			});
+		}, function remove_fake_delete_record(ctx, shard, next) {
+			lib_testcommon.remove_fake_delete_record(ctx, ctx.ctx_moray_clients[shard],
+				mod_path.join(TEST_OWNER, TEST_OBJECTID), next);
 		}
 	], function (err) {
 		if (err) {
 			process.exit(1);
 		}
+		console.log('tests passed');
 		process.exit(0);
 	});
 })();

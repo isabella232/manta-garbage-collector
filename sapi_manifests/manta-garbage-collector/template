@@ -26,5 +26,6 @@
 		{{#INDEX_MORAY_SHARDS}}
 		"{{host}}"{{^last}},{{/last}}
 		{{/INDEX_MORAY_SHARDS}}
-	]
+	],
+	"zoneId": "{{auto.ZONENAME}}"
 }

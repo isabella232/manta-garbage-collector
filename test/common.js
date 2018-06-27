@@ -109,10 +109,50 @@ create_moray_delete_record_reader(ctx, shard, listener)
 	return (new MorayDeleteRecordReader(opts));
 }
 
+
+function
+create_fake_delete_record(ctx, client, owner, objectId, done)
+{
+	var value = {
+		dirname: 'manta_gc_test',
+		key: owner + '/' + objectId,
+		headers: {},
+		mtime: Date.now(),
+		name: 'manta_gc_test_obj',
+		creator: owner,
+		owner: owner,
+		objectId: objectId,
+		roles: [],
+		type: 'object',
+		vnode: 1234
+	};
+	client.putObject(MANTA_FASTDELETE_QUEUE, value.key,
+		value, {}, function (err) {
+		if (err) {
+			ctx.ctx_log.error(err, 'unable to create test object');
+			process.exit(1);
+		}
+		done();
+	});
+}
+
+
+function
+remove_fake_delete_record(ctx, client, key, done)
+{
+	client.delObject(MANTA_FASTDELETE_QUEUE, key, {}, done);
+}
+
+
+
 module.exports = {
 	create_mock_context: create_mock_context,
 
 	create_moray_delete_record_reader: create_moray_delete_record_reader,
+
+	create_fake_delete_record: create_fake_delete_record,
+
+	remove_fake_delete_record: remove_fake_delete_record,
 
 	MANTA_FASTDELETE_QUEUE: MANTA_FASTDELETE_QUEUE,
 

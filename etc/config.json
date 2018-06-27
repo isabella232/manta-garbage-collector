@@ -29,5 +29,6 @@
 		{
 			"host": "2.moray.orbit.example.com"
 		}
-	]
+	],
+	"zoneId": "0e176aeb-3a6b-cf90-b846-9e1d293ac1ae"
 }
