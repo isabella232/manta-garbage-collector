@@ -12,12 +12,14 @@ var mod_assertplus = require('assert-plus');
 var mod_bunyan = require('bunyan');
 var mod_fs = require('fs');
 var mod_path = require('path');
+var mod_manta = require('manta');
 var mod_moray = require('moray');
 var mod_verror = require('verror');
 var mod_vasync = require('vasync');
 
 var VE = mod_verror.VError;
 var MorayDeleteRecordReader = require('../lib/moray_delete_record_reader').MorayDeleteRecordReader;
+var MakoInstructionUploader = require('../lib/mako_instruction_uploader').MakoInstructionUploader;
 
 var TEST_CONFIG_PATH = mod_path.join('..', 'etc', 'testconfig.json');
 
@@ -41,7 +43,7 @@ load_test_config(done)
 			return;
 		}
 
-		setImmediate(done, null, out);
+		done(null, out);
 	});
 }
 
@@ -56,42 +58,54 @@ create_mock_context(done)
 		level: process.env.LOG_LEVEL || 'info'
 	});
 
-	load_test_config(function (err, cfg) {
-		if (err) {
-			ctx.ctx_log.error(err, 'unable to load test config');
-			process.exit(1);
-		}
+	mod_vasync.waterfall([
+		function load_config(next) {
+			load_test_config(function (err, cfg) {
+				ctx.ctx_cfg = cfg;
+				next(err, cfg);
+			});
+		},
+		function create_moray_clients(cfg, next) {
+			ctx.ctx_moray_cfgs = {};
+			ctx.ctx_moray_clients = {};
 
-		ctx.ctx_moray_clients = {};
-		ctx.ctx_moray_cfgs = {};
+			mod_vasync.forEachPipeline({
+				inputs: cfg.shards,
+				func: function create_client(cfg, cb) {
+					var shard = cfg.srvDomain || cfg.host;
+					cfg.log = ctx.ctx_log;
+					var client = mod_moray.createClient(cfg);
 
-		mod_vasync.forEachPipeline({
-			inputs: cfg.shards,
-			func: function create_client(cfg, next) {
-				var shard = cfg.srvDomain || cfg.host;
-				cfg.log = ctx.ctx_log;
-				var client = mod_moray.createClient(cfg);
+					client.once('connect', function () {
+						client.removeAllListeners('error');
+						ctx.ctx_moray_clients[shard] = client;
+						cb();
+					});
 
-				client.once('connect', function () {
-					client.removeAllListeners('error');
-					ctx.ctx_moray_clients[shard] = client;
-					next();
-				});
-
-				client.once('error', function (err) {
-					client.removeAllListeners('connect');
+					client.once('error', function (err) {
+						client.removeAllListeners('connect');
+						cb(err);
+					});
+				}
+			}, function (err) {
+				if (err) {
+					ctx.ctx_log.error('unable to create moray client "%s"',
+						err.message);
 					next(err);
-				});
-			}
-		}, function (err) {
-			if (err) {
-				ctx.ctx_log.error('unable to created moray client "%s"',
-					err.message);
-				done(err);
-				return;
-			}
-			done(null, ctx);
-		});
+					return;
+				}
+				next(null, cfg);
+			});
+		},
+		function create_manta_client(cfg, next) {
+			ctx.ctx_manta_client = mod_manta.createClient(cfg.manta);
+			next();
+		}
+	], function (err) {
+		if (err) {
+			console.log.error(err, 'unable to created mock context');
+		}
+		done(err, ctx);
 	});
 }
 
@@ -107,6 +121,24 @@ create_moray_delete_record_reader(ctx, shard, listener)
 	}
 
 	return (new MorayDeleteRecordReader(opts));
+}
+
+
+function
+create_mako_instruction_uploader(ctx, listener)
+{
+	ctx.ctx_mako_cfg = {
+		instr_upload_batch_size: 1,
+		instr_path_prefix: mod_path.join('/', ctx.ctx_cfg.manta.user,
+			'stor', 'manta_gc', 'mako')
+	}
+	var opts = {
+		ctx: ctx,
+		log: ctx.ctx_log,
+		listener: listener
+	};
+
+	return (new MakoInstructionUploader(opts))
 }
 
 
@@ -149,6 +181,8 @@ module.exports = {
 	create_mock_context: create_mock_context,
 
 	create_moray_delete_record_reader: create_moray_delete_record_reader,
+
+	create_mako_instruction_uploader: create_mako_instruction_uploader,
 
 	create_fake_delete_record: create_fake_delete_record,
 
