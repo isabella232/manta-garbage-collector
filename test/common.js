@@ -19,6 +19,7 @@ var mod_vasync = require('vasync');
 
 var VE = mod_verror.VError;
 var MorayDeleteRecordReader = require('../lib/moray_delete_record_reader').MorayDeleteRecordReader;
+var MorayDeleteRecordCleaner = require('../lib/moray_delete_record_cleaner').MorayDeleteRecordCleaner;
 var MakoInstructionUploader = require('../lib/mako_instruction_uploader').MakoInstructionUploader;
 
 var TEST_CONFIG_PATH = mod_path.join('..', 'etc', 'testconfig.json');
@@ -125,6 +126,20 @@ create_moray_delete_record_reader(ctx, shard, listener)
 
 
 function
+create_moray_delete_record_cleaner(ctx, shard)
+{
+	var opts = {
+		ctx: ctx,
+		bucket: MANTA_FASTDELETE_QUEUE,
+		shard: shard,
+		log: ctx.ctx_log
+	}
+
+	return (new MorayDeleteRecordCleaner(opts));
+}
+
+
+function
 create_mako_instruction_uploader(ctx, listener)
 {
 	ctx.ctx_mako_cfg = {
@@ -147,7 +162,7 @@ create_fake_delete_record(ctx, client, owner, objectId, done)
 {
 	var value = {
 		dirname: 'manta_gc_test',
-		key: owner + '/' + objectId,
+		key: mod_path.join(owner, objectId),
 		headers: {},
 		mtime: Date.now(),
 		name: 'manta_gc_test_obj',
@@ -156,7 +171,8 @@ create_fake_delete_record(ctx, client, owner, objectId, done)
 		objectId: objectId,
 		roles: [],
 		type: 'object',
-		vnode: 1234
+		vnode: 1234,
+		contentLength: 0
 	};
 	client.putObject(MANTA_FASTDELETE_QUEUE, value.key,
 		value, {}, function (err) {
@@ -181,6 +197,8 @@ module.exports = {
 	create_mock_context: create_mock_context,
 
 	create_moray_delete_record_reader: create_moray_delete_record_reader,
+
+	create_moray_delete_record_cleaner: create_moray_delete_record_cleaner,
 
 	create_mako_instruction_uploader: create_mako_instruction_uploader,
 
