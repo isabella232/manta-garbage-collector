@@ -65,8 +65,8 @@ var TEST_ZERO_BYTE_OBJECT_RECORD = {
 
 
 (function
- main()
- {
+main()
+{
 	 mod_vasync.waterfall([
 		function setup_context(next) {
 			lib_testcommon.ceate_mock_context(function (err, ctx) {
@@ -76,13 +76,6 @@ var TEST_ZERO_BYTE_OBJECT_RECORD = {
 					return;
 				}
 				var shard = Object.keys(ctx.ctx_moray_clients)[0];
-
-				ctx.ctx_moray_cfgs[shard] = {
-					record_read_batch_size: 1,
-					record_read_sort_attr: '_mtime',
-					record_read_sort_order: 'DESC',
-					record_read_wait_interval: 1000
-				};
 
 				ctx.ctx_mako_cfg = {
 					instr_upload_batch_size: 1
@@ -107,7 +100,7 @@ var TEST_ZERO_BYTE_OBJECT_RECORD = {
 			var storage_ids_received = [];
 			var instrs_received = {};
 
-			listeners.moray_listener.on('key', function (key) {
+			listeners.moray_listener.on('cleanup', function (key) {
 				mod_assertplus.ok(false, 'received moray cleaner event' +
 					'for mako-backed object');
 			});
@@ -169,7 +162,7 @@ var TEST_ZERO_BYTE_OBJECT_RECORD = {
 					listeners.mako_listener.removeAllListeners(
 						'instruction');
 					listeners.moray_listener.removeAllListeners(
-						'key');
+						'cleanup');
 				});
 			}, DELAY);
 
@@ -180,7 +173,7 @@ var TEST_ZERO_BYTE_OBJECT_RECORD = {
 					'byte object');
 			});
 
-			listeners.moray_listener.on('key', function (key) {
+			listeners.moray_listener.on('cleanup', function (key) {
 				received_key = true;
 				mod_assetplus.equals(key, mod_path.join(TEST_OWNER,
 					TEST_ZERO_BYTE_OBJECTID), 'zero byte object key ' +
@@ -192,7 +185,7 @@ var TEST_ZERO_BYTE_OBJECT_RECORD = {
 				mod_assertplus.ok(received_key, 'did not receive zero byte ' +
 					'object key');
 				listeners.mako_listener.removeAllListeners('instruction');
-				listeners.moray_listener.removeAllListeners('key');
+				listeners.moray_listener.removeAllListeners('cleanup');
 				next();
 			}, DELAY);
 		}
