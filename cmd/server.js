@@ -109,6 +109,7 @@ create_manta_client(ctx, done)
 	 */
 	ctx.ctx_mako_cfg = {
 		instr_upload_batch_size: 1,
+		instr_upload_flush_delay: 10000,
 		instr_path_prefix: mod_path.join('', manta_cfg.user, 'stor',
 			'manta_gc', 'mako')
 	};

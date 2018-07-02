@@ -159,6 +159,7 @@ main()
 							var contents = '';
 							if (err) {
 								_cb(err);
+								return;
 							}
 							stream.on('data', function (buf) {
 								contents = contents.concat(

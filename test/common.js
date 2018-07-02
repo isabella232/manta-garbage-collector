@@ -21,6 +21,7 @@ var VE = mod_verror.VError;
 var MorayDeleteRecordReader = require('../lib/moray_delete_record_reader').MorayDeleteRecordReader;
 var MorayDeleteRecordCleaner = require('../lib/moray_delete_record_cleaner').MorayDeleteRecordCleaner;
 var MakoInstructionUploader = require('../lib/mako_instruction_uploader').MakoInstructionUploader;
+var DeleteRecordTransformer = require('../lib/delete_record_transformer').DeleteRecordTransformer;
 
 var TEST_CONFIG_PATH = mod_path.join('..', 'etc', 'testconfig.json');
 
@@ -158,6 +159,20 @@ create_mako_instruction_uploader(ctx, listener)
 
 
 function
+create_delete_record_transformer(ctx, shard, listeners)
+{
+	var opts = {
+		ctx: ctx,
+		log: ctx.ctx_log,
+		mako_listener: listeners.mako_listener,
+		moray_listener: listeners.moray_listener
+	};
+
+	return (new DeleteRecordTransformer(opts));
+}
+
+
+function
 create_fake_delete_record(ctx, client, owner, objectId, done)
 {
 	var value = {
@@ -201,6 +216,8 @@ module.exports = {
 	create_moray_delete_record_cleaner: create_moray_delete_record_cleaner,
 
 	create_mako_instruction_uploader: create_mako_instruction_uploader,
+
+	create_delete_record_transformer: create_delete_record_transformer,
 
 	create_fake_delete_record: create_fake_delete_record,
 
