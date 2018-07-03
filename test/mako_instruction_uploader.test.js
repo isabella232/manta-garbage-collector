@@ -81,7 +81,7 @@ main()
 				func: function emit(storage_id, done) {
 					uploader.emit('instruction', {
 						manta_storage_id: storage_id,
-						lines: TEST_INSTRUCTIONS[storage_id]
+						instrs: TEST_INSTRUCTIONS[storage_id]
 					});
 
 					done();
@@ -117,7 +117,7 @@ main()
 
 			function find_instr_in_manta(key, done) {
 				var manta_storage_id = key;
-				var prefix = ctx.ctx_mako_cfg.instr_path_prefix;
+				var prefix = ctx.ctx_mako_cfg.instr_upload_path_prefix;
 				var path = mod_path.join(prefix, manta_storage_id);
 
 				/*

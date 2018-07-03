@@ -23,10 +23,13 @@ var MorayDeleteRecordCleaner = require('../lib/moray_delete_record_cleaner').Mor
 var MakoInstructionUploader = require('../lib/mako_instruction_uploader').MakoInstructionUploader;
 var DeleteRecordTransformer = require('../lib/delete_record_transformer').DeleteRecordTransformer;
 
+var GCWorker = require('../lib/gc_worker').GCWorker;
+
 var TEST_CONFIG_PATH = mod_path.join('..', 'etc', 'testconfig.json');
 
 var MANTA_FASTDELETE_QUEUE = 'manta_fastdelete_queue';
 var MANTA_DELETE_LOG = 'manta_delete_log';
+
 
 function
 load_test_config(done)
@@ -145,7 +148,7 @@ create_mako_instruction_uploader(ctx, listener)
 {
 	ctx.ctx_mako_cfg = {
 		instr_upload_batch_size: 1,
-		instr_path_prefix: mod_path.join('/', ctx.ctx_cfg.manta.user,
+		instr_upload_path_prefix: mod_path.join('/', ctx.ctx_cfg.manta.user,
 			'stor', 'manta_gc', 'mako')
 	}
 	var opts = {
@@ -173,7 +176,7 @@ create_delete_record_transformer(ctx, shard, listeners)
 
 
 function
-create_fake_delete_record(ctx, client, owner, objectId, done)
+create_fake_delete_record(ctx, client, owner, objectId, sharks, done)
 {
 	var value = {
 		dirname: 'manta_gc_test',
@@ -187,7 +190,13 @@ create_fake_delete_record(ctx, client, owner, objectId, done)
 		roles: [],
 		type: 'object',
 		vnode: 1234,
-		contentLength: 0
+		sharks: sharks.map(function (storage_id) {
+			return ({
+				dc: 'dc',
+				manta_storage_id: storage_id
+			});
+		}),
+		contentLength: sharks.length > 0 ? 512000 : 0
 	};
 	client.putObject(MANTA_FASTDELETE_QUEUE, value.key,
 		value, {}, function (err) {
@@ -201,11 +210,169 @@ create_fake_delete_record(ctx, client, owner, objectId, done)
 
 
 function
+get_fake_delete_record(client, key, done)
+{
+	client.getObject(MANTA_FASTDELETE_QUEUE, key, done);
+}
+
+
+function
 remove_fake_delete_record(ctx, client, key, done)
 {
 	client.delObject(MANTA_FASTDELETE_QUEUE, key, {}, done);
 }
 
+
+function
+create_gc_worker(ctx, shard, log) {
+	var opts = {
+		ctx: ctx,
+		shard: shard,
+		log: log
+	};
+
+	return (new GCWorker(opts));
+}
+
+
+/*
+ * Given an object mapping storage ids to arrays identifying individual objects.
+ * Verify that mako cleanup instructions have been uploaded for those objects
+ * and only appear once in the object data uploaded by this GC worker.
+ */
+function
+find_instrs_in_manta(client, instrs, path_prefix, find_done)
+{
+	function get_instr_object_paths_for_storage_id(storage_id, cb) {
+		var path = mod_path.join(path_prefix, storage_id);
+
+		instr_paths = [];
+
+		client.ls(path, {}, function (err, stream) {
+			stream.on('object', function (obj) {
+				instr_paths.push(mod_path.join(path,
+					obj.name));
+			});
+
+			stream.on('error', function (err) {
+				console.log(err, 'unable to list ' +
+					'mako instrs');
+				cb(err);
+			});
+
+			stream.on('end', function () {
+				cb(null, instr_paths);
+			});
+		});
+	}
+
+	function get_instr_object_data(paths, cb) {
+
+		var chunks = [];
+
+		function get_obj(path, get_cb) {
+			client.get(path, {}, function (err, stream) {
+				var contents = '';
+				if (err) {
+					get_cb(err);
+					return;
+				}
+				stream.on('data', function (buf) {
+					contents = contents.concat(
+						buf.toString());
+				});
+				stream.on('end', function () {
+					mod_assertplus.ok(contents,
+						'inspecting empty object');
+					chunks.push(contents);
+					get_cb();
+				});
+				stream.on('error', function (err) {
+					get_cb(err);
+				});
+			});
+		}
+
+		mod_vasync.forEachParallel({
+			inputs: paths,
+			func: get_obj
+		}, function (err) {
+			cb(err, chunks.join('\n'));
+		});
+
+	}
+
+	function search_instr_object_data(data, search_strs, cb) {
+		var occurrences = {};
+		mod_vasync.forEachParallel({
+			inputs: search_strs,
+			func: function search(str, done) {
+				var count = (data.match(new RegExp(str, "g")) ||
+					[]).length;
+				occurrences[str] = count;
+				done();
+			}
+		}, function (err) {
+			cb(err, occurrences);
+		});
+	}
+
+	function find_instrs_for_storage_id(storage_id, done) {
+		var results;
+
+		var search_strs = instrs[storage_id].map(
+			function (instr) {
+			return instr.join('\t');
+		});
+
+		mod_vasync.waterfall([
+			get_instr_object_paths_for_storage_id.bind(null, storage_id),
+			get_instr_object_data,
+			function (data, next) {
+				search_instr_object_data(data, search_strs,
+					function (err, res) {
+					if (err) {
+						next(err);
+						return;
+					}
+					results = res;
+					next();
+				});
+			}
+		], function (err) {
+			if (err) {
+				done(err);
+				return;
+			}
+			var errors = [];
+
+			mod_vasync.forEachParallel({
+				inputs: Object.keys(results),
+				func: function (key, cb) {
+					var count = results[key];
+					if (count !== 1) {
+						errors.push(new mod_verror.VError(
+							'instruction "%s" found "%d" ' +
+							'times in instruction objects',
+							key, count));
+					}
+					cb();
+				}
+			}, function (_) {
+				if (errors.length > 0) {
+					done(new mod_verror.MultiError(errors));
+					return;
+				}
+				done();
+			});
+		});
+	}
+
+	mod_vasync.forEachPipeline({
+		inputs: Object.keys(instrs),
+		func: find_instrs_for_storage_id
+	}, find_done);
+}
 
 
 module.exports = {
@@ -219,9 +386,15 @@ module.exports = {
 
 	create_delete_record_transformer: create_delete_record_transformer,
 
+	create_gc_worker: create_gc_worker,
+
 	create_fake_delete_record: create_fake_delete_record,
 
 	remove_fake_delete_record: remove_fake_delete_record,
+
+	get_fake_delete_record: get_fake_delete_record,
+
+	find_instrs_in_manta: find_instrs_in_manta,
 
 	MANTA_FASTDELETE_QUEUE: MANTA_FASTDELETE_QUEUE,
 

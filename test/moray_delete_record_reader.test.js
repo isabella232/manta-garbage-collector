@@ -49,7 +49,7 @@ main()
 		},
 		function create_delete_record(ctx, shard, next) {
 			lib_testcommon.create_fake_delete_record(ctx,
-				ctx.ctx_moray_clients[shard], TEST_OWNER, TEST_OBJECTID,
+				ctx.ctx_moray_clients[shard], TEST_OWNER, TEST_OBJECTID, [],
 				function (err) {
 				if (err) {
 					ctx.ctx_log.error(err, 'unabled to create delete record');
