@@ -117,7 +117,7 @@ var TEST_ZERO_BYTE_OBJECT_KEYS = TEST_ZERO_BYTE_OBJECT_RECORDS.map(function (rec
 
 
 function
-run_delete_record_transformer_test(num_records)
+run_delete_record_transformer_test(num_records, test_done)
 {
 	mod_assertplus.ok(num_records <= NUM_TEST_RECORDS, 'must test emission of at ' +
 		'most NUM_TEST_RECORDS');
@@ -130,12 +130,6 @@ run_delete_record_transformer_test(num_records)
 					return;
 				}
 				var shard = Object.keys(ctx.ctx_moray_clients)[0];
-
-				ctx.ctx_mako_cfg = {
-					instr_upload_batch_size: NUM_TEST_RECORDS,
-					instr_upload_flush_delay: DELAY - 1000
-				};
-
 				next(null, ctx, shard);
 			});
 		},
@@ -241,19 +235,6 @@ run_delete_record_transformer_test(num_records)
 					'byte object');
 			});
 
-			listeners.moray_listener.on('cleanup', function (key) {
-				mod_assertplus.ok(TEST_ZERO_BYTE_OBJECT_KEYS.slice(0,
-					num_records).indexOf(key) !== -1, 'received unexpected ' +
-					'zero by object key');
-				received_keys[key] = true;
-				next();
-			});
-
-			TEST_ZERO_BYTE_OBJECT_RECORDS.slice(0, num_records).forEach(
-				function (record) {
-				transformer.emit('record', record);
-			});
-
 			setTimeout(function () {
 				mod_assertplus.equal(num_records, Object.keys(received_keys).length,
 					'did not receive all expected zero byte object keys');
@@ -261,19 +242,42 @@ run_delete_record_transformer_test(num_records)
 				listeners.moray_listener.removeAllListeners('cleanup');
 				next();
 			}, DELAY);
+
+			listeners.moray_listener.on('cleanup', function (key) {
+				mod_assertplus.ok(TEST_ZERO_BYTE_OBJECT_KEYS.slice(0,
+					num_records).indexOf(key) !== -1, 'received unexpected ' +
+					'zero by object key');
+				received_keys[key] = true;
+			});
+
+			TEST_ZERO_BYTE_OBJECT_RECORDS.slice(0, num_records).forEach(
+				function (record) {
+				transformer.emit('record', record);
+			});
+
 		}
 	], function (err) {
 		if (err) {
 			process.exit(1);
 		}
-		console.log('tests passed');
-		process.exit(0);
+		test_done();
 	});
 }
 
-run_delete_record_transformer_test(NUM_TEST_RECORDS);
+mod_vasync.pipeline({funcs: [
+	function (_, next) {
+		run_delete_record_transformer_test(NUM_TEST_RECORDS, next);
+	},
+	function (_, next) {
+		/*
+		 * Emit 1 fewer than the batch size. Make sure records still get flushed.
+		 */
+		run_delete_record_transformer_test(NUM_TEST_RECORDS - 1, next);
+	}
+]}, function (err) {
+	console.log('tests passed');
+	process.exit(0);
+});
 
-/*
- * Emit 1 fewer than the batch size. Make sure records still get flushed.
- */
-run_delete_record_transformer_test(NUM_TEST_RECORDS - 1);
+
+

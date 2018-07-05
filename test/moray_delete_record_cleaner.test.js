@@ -26,9 +26,6 @@ var TEST_OWNER = mod_uuidv4();
  */
 var TEST_DELAY = 10000;
 
-var CLEANER_DELAY = 5000;
-var CLEANER_BATCH_SIZE = 5;
-
 var NUM_TEST_RECORDS = 5;
 
 var TEST_RECORDS = (function generate_test_records() {
@@ -52,7 +49,7 @@ var TEST_RECORD_KEYS = TEST_RECORDS.map(function (record) {
  * configurable delay (see `record_delete_delay`).
  */
 function
-do_moray_cleaner_test(num_records)
+do_moray_cleaner_test(num_records, test_done)
 {
 	mod_vasync.waterfall([
 		function setup_context(next) {
@@ -64,12 +61,6 @@ do_moray_cleaner_test(num_records)
 				}
 
 				var shard = Object.keys(ctx.ctx_moray_clients)[0];
-
-				ctx.ctx_moray_cfgs[shard] = {
-					record_delete_batch_size: CLEANER_BATCH_SIZE,
-					record_delete_delay: CLEANER_DELAY,
-				};
-
 				next(null, ctx, shard);
 			});
 		},
@@ -114,19 +105,20 @@ do_moray_cleaner_test(num_records)
 		}
 	], function (err) {
 		if (err) {
-			process.exit(1);
+			process.exit(0);
 		}
-		process.exit(0);
+		test_done();
 	});
 }
 
-/*
- * Request deletion of an entire batch
- */
-do_moray_cleaner_test(TEST_RECORDS.length);
-
-/*
- * Fall short of the batch size, we still expect the requested records to be
- * deleted after the `delete_record_delay`.
- */
-do_moray_cleaner_test(TEST_RECORDS.length - 1);
+mod_vasync.pipeline({funcs: [
+	function (_, next) {
+		do_moray_cleaner_test(TEST_RECORDS.length, next);
+	},
+	function (_, next) {
+		do_moray_cleaner_test(TEST_RECORDS.length - 1, next);
+	}
+]}, function (_) {
+	console.log('tests passed');
+	process.exit(0);
+});

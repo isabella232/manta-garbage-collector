@@ -27,5 +27,22 @@
 		"{{host}}"{{^last}},{{/last}}
 		{{/INDEX_MORAY_SHARDS}}
 	],
+	"params": {
+		"mako": {
+			"concurrency": {{GC_MAKO_CONCURRENCY}},
+			"instr_upload_batch_size": {{GC_INSTR_UPLOAD_BATCH_SIZE}},
+			"instr_upload_flush_delay": {{GC_INSTR_UPLOAD_FLUSH_DELAY}},
+			"instr_upload_path_prefix": "{{GC_INSTR_UPLOAD_PATH_PREFIX}}"
+		},
+		"manta": {
+			"concurrency": {{GC_MORAY_CONCURRENCY}},
+			"record_read_batch_size": {{GC_RECORD_READ_BATCH_SIZE}},
+			"record_read_wait_interval": {{GC_RECORD_READ_WAIT_INTERVAL}},
+			"record_read_sort_attr": "{{GC_RECORD_READ_SORT_ATTR}}",
+			"record_read_sort_order": "{{GC_RECORD_READ_SORT_ORDER}}",
+			"record_delete_batch_size": {{GC_RECORD_READ_BATCH_SIZE}},
+			"record_delete_delay": {{GC_RECORD_DELETE_DELAY}}
+		}
+	},
 	"zoneId": "{{auto.ZONENAME}}"
 }

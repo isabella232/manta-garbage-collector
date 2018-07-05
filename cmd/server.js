@@ -100,19 +100,7 @@ create_manta_client(ctx, done)
 	ctx.ctx_manta_client = mod_manta.createClient(manta_cfg);
 	ctx.ctx_log.debug('created manta client');
 
-	/*
-	 * TODO: Get rid of this static definition. Potentially rename this to
-	 * something that implicates it more in the process of uploading objects
-	 * to manta.
-	 *
-	 * TODO: Right now we set one global configuration for all Makos.
-	 */
-	ctx.ctx_mako_cfg = {
-		instr_upload_batch_size: 1,
-		instr_upload_flush_delay: 10000,
-		instr_path_prefix: mod_path.join('', manta_cfg.user, 'stor',
-			'manta_gc', 'mako')
-	};
+	ctx.ctx_mako_cfg = mod_jsprim.deepCopy(ctx.ctx_cfg.params.mako);
 	setImmediate(done);
 }
 

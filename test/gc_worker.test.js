@@ -53,57 +53,12 @@ var TEST_INSTRUCTIONS = (function generate_test_instructions() {
 })();
 
 
-var TEST_PARAMS = {
-	record_read_batch_size: 10,
-	instr_upload_batch_size: 10,
-	record_delete_batch_size: 10,
-
-	instr_upload_flush_delay: 5000,
-	record_read_wait_interval: 5000,
-	record_delete_delay: 5000
-};
-
-
 (function
 main()
 {
 	mod_vasync.waterfall([
 		function create_context(next) {
-			lib_testcommon.create_mock_context(function (err, ctx) {
-				mod_assertplus.ok(!err, 'unable to ' +
-					'create context');
-				ctx.ctx_mako_cfg = {
-					/*
-					 * Mako upload configuration
-					 */
-					instr_upload_batch_size: TEST_PARAMS.instr_upload_batch_size,
-					instr_upload_flush_delay: TEST_PARAMS.instr_upload_flush_delay,
-					instr_upload_path_prefix: mod_path.join('/',
-						ctx.ctx_cfg.manta.user, 'stor',
-						'manta_gc', 'mako')
-				};
-				Object.keys(ctx.ctx_moray_clients).forEach(function (shard) {
-					ctx.ctx_moray_cfgs[shard] = {
-						/*
-						 * Record read configuration
-						 */
-						record_read_wait_interval:
-							TEST_PARAMS.record_read_wait_interval,
-						record_read_batch_size:
-							TEST_PARAMS.record_read_batch_size,
-						record_read_sort_attr: '_mtime',
-						record_read_sort_order: 'ASC',
-						/*
-						 * Record delete configuration
-						 */
-						record_delete_batch_size:
-							TEST_PARAMS.record_delete_batch_size,
-						record_delete_delay:
-							TEST_PARAMS.record_delete_delay
-					};
-				});
-				next(null, ctx);
-			});
+			lib_testcommon.create_mock_context(next);
 		},
 		function create_gc_worker(ctx, next) {
 			var shard = Object.keys(ctx.ctx_moray_clients)[0];

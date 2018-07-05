@@ -21,10 +21,11 @@ var lib_testcommon = require('./common');
 var TEST_OWNER = mod_uuidv4();
 var TEST_OBJECTID = mod_uuidv4();
 var DELAY = 3000;
+var LONG_DELAY = 16000;
 
 
-(function
-main()
+function
+do_basic_test()
 {
 	mod_vasync.waterfall([
 		function setup_context(next) {
@@ -36,13 +37,6 @@ main()
 				}
 
 				var shard = Object.keys(ctx.ctx_moray_clients)[0];
-
-				ctx.ctx_moray_cfgs[shard] = {
-					record_read_batch_size: 1,
-					record_read_sort_attr: '_mtime',
-					record_read_sort_order: 'DESC',
-					record_read_wait_interval: 1000
-				};
 
 				next(null, ctx, shard);
 			});
@@ -74,6 +68,8 @@ main()
 			listener.once('record', function (record) {
 				clearTimeout(timer);
 				ctx.ctx_log.debug({
+					received_key: record.key,
+					expected_key: key,
 					record: mod_util.inspect(record)
 				}, 'received record');
 				mod_assertplus.equal(record.key, key, 'unexpected key ' +
@@ -92,4 +88,86 @@ main()
 		console.log('tests passed');
 		process.exit(0);
 	});
-})();
+}
+
+
+function
+do_error_test()
+{
+	mod_vasync.waterfall([
+		function setup_context(next) {
+			lib_testcommon.create_mock_context(function (err, ctx) {
+				if (err) {
+					console.log('error creating context');
+					next(err);
+					return;
+				}
+
+				var shard = Object.keys(ctx.ctx_moray_clients)[0];
+
+				var client = ctx.ctx_moray_clients[shard];
+				delete (ctx.ctx_moray_clients[shard]);
+
+				next(null, ctx, shard, client);
+			});
+		},
+		function create_reader(ctx, shard, client) {
+			var listener = new mod_events.EventEmitter();
+			var reader = lib_testcommon.create_moray_delete_record_reader(
+				ctx, shard, listener);
+
+			/*
+			 * The record reader doesn't have access to a
+			 * moray client right now. It shouldn't be
+			 * sending records.
+			 */
+			listener.on('record', function (record) {
+				mod_assertplus.ok(false, 'received unexpected moray ' +
+					'record');
+			});
+
+			setTimeout(function() {
+				listener.removeAllListeners('record');
+				next(null, ctx, shard, client, reader, listener);
+			}, LONG_DELAY);
+		},
+		function create_fake_record(ctx, shard, client, reader, listener) {
+			lib_testcommon.create_fake_delete_record(ctx, client, TEST_OWNER,
+				TEST_OBJECTID, [], function (err) {
+				if (err) {
+					ctx.ctx_log.error(err, 'unabled to create delete record');
+					next(err);
+					return;
+				}
+				next(null, ctx, shard, client, reader, listener);
+			});
+		},
+		function give_back_moray_client(ctx, shard, client, reader, listener) {
+			var received_record = false;
+			listener.on('record', function (record) {
+				received_record = true;
+			});
+			/*
+			 * The behavior we expect is that the record
+			 * reader resumes sending records once the error
+			 * condition has cleared.
+			 */
+			ctx.ctx_moray_clients[shard] = client;
+			setTimeout(function () {
+				mod_assertplus.ok(received_record, 'did not receive record ' +
+					'after moray client returned');
+				lib_testcommon.remove_fake_delete_record(ctx, client,
+					mod_path.join(TEST_OWNER, TEST_OBJECTID), next);
+			}, LONG_DELAY);
+		}
+	], function (err) {
+		if (err) {
+			process.exit(1);
+		}
+		console.log('tests passed');
+		process.exit(0);
+	});
+}
+
+do_basic_test();
+do_error_test();

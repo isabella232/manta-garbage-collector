@@ -11,6 +11,7 @@
 var mod_assertplus = require('assert-plus');
 var mod_bunyan = require('bunyan');
 var mod_fs = require('fs');
+var mod_jsprim = require('jsprim');
 var mod_path = require('path');
 var mod_manta = require('manta');
 var mod_moray = require('moray');
@@ -84,6 +85,8 @@ create_mock_context(done)
 					client.once('connect', function () {
 						client.removeAllListeners('error');
 						ctx.ctx_moray_clients[shard] = client;
+						ctx.ctx_moray_cfgs[shard] = mod_jsprim.deepCopy(
+							ctx.ctx_cfg.params.moray);
 						cb();
 					});
 
@@ -104,6 +107,7 @@ create_mock_context(done)
 		},
 		function create_manta_client(cfg, next) {
 			ctx.ctx_manta_client = mod_manta.createClient(cfg.manta);
+			ctx.ctx_mako_cfg = mod_jsprim.deepCopy(ctx.ctx_cfg.params.mako);
 			next();
 		}
 	], function (err) {
@@ -123,7 +127,7 @@ create_moray_delete_record_reader(ctx, shard, listener)
 		shard: shard,
 		listener: listener,
 		log: ctx.ctx_log,
-	}
+	};
 
 	return (new MorayDeleteRecordReader(opts));
 }
@@ -137,7 +141,7 @@ create_moray_delete_record_cleaner(ctx, shard)
 		bucket: MANTA_FASTDELETE_QUEUE,
 		shard: shard,
 		log: ctx.ctx_log
-	}
+	};
 
 	return (new MorayDeleteRecordCleaner(opts));
 }
@@ -146,11 +150,6 @@ create_moray_delete_record_cleaner(ctx, shard)
 function
 create_mako_instruction_uploader(ctx, listener)
 {
-	ctx.ctx_mako_cfg = {
-		instr_upload_batch_size: 1,
-		instr_upload_path_prefix: mod_path.join('/', ctx.ctx_cfg.manta.user,
-			'stor', 'manta_gc', 'mako')
-	}
 	var opts = {
 		ctx: ctx,
 		log: ctx.ctx_log,
@@ -350,7 +349,14 @@ find_instrs_in_manta(client, instrs, path_prefix, find_done)
 				inputs: Object.keys(results),
 				func: function (key, cb) {
 					var count = results[key];
-					if (count !== 1) {
+					/*
+					 * It's possible that the same
+					 * instructions are uploaded multiple
+					 * times because the
+					 * MorayDeleteRecordReader has wrapped
+					 * around.
+					 */
+					if (count < 1) {
 						errors.push(new mod_verror.VError(
 							'instruction "%s" found "%d" ' +
 							'times in instruction objects',
