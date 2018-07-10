@@ -112,7 +112,7 @@ create_mock_context(done)
 		}
 	], function (err) {
 		if (err) {
-			console.log.error(err, 'unable to created mock context');
+			console.log(err, 'unable to created mock context');
 		}
 		done(err, ctx);
 	});
@@ -175,7 +175,7 @@ create_delete_record_transformer(ctx, shard, listeners)
 
 
 function
-create_fake_delete_record(ctx, client, owner, objectId, sharks, done)
+create_fake_delete_record(ctx, client, bucket, owner, objectId, sharks, done)
 {
 	var value = {
 		dirname: 'manta_gc_test',
@@ -197,7 +197,7 @@ create_fake_delete_record(ctx, client, owner, objectId, sharks, done)
 		}),
 		contentLength: sharks.length > 0 ? 512000 : 0
 	};
-	client.putObject(MANTA_FASTDELETE_QUEUE, value.key,
+	client.putObject(bucket, value.key,
 		value, {}, function (err) {
 		if (err) {
 			ctx.ctx_log.error(err, 'unable to create test object');
@@ -401,6 +401,8 @@ module.exports = {
 	get_fake_delete_record: get_fake_delete_record,
 
 	find_instrs_in_manta: find_instrs_in_manta,
+
+	load_test_config: load_test_config,
 
 	MANTA_FASTDELETE_QUEUE: MANTA_FASTDELETE_QUEUE,
 

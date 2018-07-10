@@ -72,6 +72,7 @@ do_gc_worker_basic_test(test_done)
 				inputs: TEST_OBJECTIDS,
 				func: function create_record(objectid, done) {
 					lib_testcommon.create_fake_delete_record(ctx, client,
+						lib_testcommon.MANTA_FASTDELETE_QUEUE,
 						TEST_OWNER, objectid, TEST_SHARKS, done);
 				}
 			}, function (err) {
@@ -149,7 +150,8 @@ do_gc_worker_pause_test(test_done)
 				inputs: TEST_OBJECTIDS,
 				func: function create_record(objectid, done) {
 					lib_testcommon.create_fake_delete_record(ctx, client,
-						TEST_OWNER, objectid, TEST_SHARKS, done);
+						lib_testcommon.MANTA_FASTDELETE_QUEUE, TEST_OWNER,
+						objectid, TEST_SHARKS, done);
 				}
 			}, function (err) {
 				next(err, ctx, worker, shard);

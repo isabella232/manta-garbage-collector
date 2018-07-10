@@ -43,8 +43,9 @@ do_basic_test()
 		},
 		function create_delete_record(ctx, shard, next) {
 			lib_testcommon.create_fake_delete_record(ctx,
-				ctx.ctx_moray_clients[shard], TEST_OWNER, TEST_OBJECTID, [],
-				function (err) {
+				ctx.ctx_moray_clients[shard],
+				lib_testcommon.MANTA_FASTDELETE_QUEUE,
+				TEST_OWNER, TEST_OBJECTID, [], function (err) {
 				if (err) {
 					ctx.ctx_log.error(err, 'unabled to create delete record');
 					next(err);
@@ -132,7 +133,8 @@ do_error_test()
 			}, LONG_DELAY);
 		},
 		function create_fake_record(ctx, shard, client, reader, listener) {
-			lib_testcommon.create_fake_delete_record(ctx, client, TEST_OWNER,
+			lib_testcommon.create_fake_delete_record(ctx, client,
+				lib_testcommon.MANTA_FASTDELETE_QUEUE, TEST_OWNER,
 				TEST_OBJECTID, [], function (err) {
 				if (err) {
 					ctx.ctx_log.error(err, 'unabled to create delete record');

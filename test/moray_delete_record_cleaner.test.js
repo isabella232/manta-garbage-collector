@@ -69,7 +69,8 @@ do_moray_cleaner_test(num_records, test_done)
 			function create_delete_record(record, cb) {
 				ctx.ctx_log.debug('creating test record ' + record);
 				lib_testcommon.create_fake_delete_record(ctx,
-					client, record[0], record[1], [], cb);
+					client, lib_testcommon.MANTA_FASTDELETE_QUEUE,
+					record[0], record[1], [], cb);
 			}
 			mod_vasync.forEachPipeline({
 				inputs: TEST_RECORDS.slice(num_records),
