@@ -19,6 +19,7 @@ var mod_vasync = require('vasync');
 var mod_verror = require('verror');
 
 var mod_gc_manager = require('../lib/gc_manager');
+var mod_schema = require('../lib/schema');
 
 var lib_common = require('../lib/common');
 var lib_http_server = require('../lib/http_server');
@@ -63,6 +64,19 @@ load_config(ctx, done)
 		}
 
 		ctx.ctx_log.info('loaded configuration file "%s"', ctx.ctx_cfgfile);
+
+		var err = mod_schema.validate_shard_cfg(out.params.moray);
+		if (err) {
+			done(new VE(err, 'malformed moray configuration'));
+			return;
+		}
+
+		err = mod_schema.validate_mako_cfg(out.params.mako);
+		if (err) {
+			done(new VE(err, 'malformed mako configuration'));
+			return;
+		}
+
 		ctx.ctx_cfg = out;
 
 		setImmediate(done);
