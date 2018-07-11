@@ -95,6 +95,10 @@ setup_moray_clients(ctx, done)
 	ctx.ctx_moray_clients = {};
 	ctx.ctx_moray_cfgs = {};
 
+	var moray_defaults = {
+		record_read_offset: 0
+	};
+
 	mod_vasync.forEachPipeline({
 		inputs: ctx.ctx_cfg.shards,
 		func: function create_moray_client(shard, next) {
@@ -106,7 +110,7 @@ setup_moray_clients(ctx, done)
 				}
 				ctx.ctx_moray_clients[shard.host] = client;
 				ctx.ctx_moray_cfgs[shard.host] = mod_jsprim.mergeObjects(
-					shard, ctx.ctx_cfg.params.moray);
+					shard, ctx.ctx_cfg.params.moray, moray_defaults);
 				next();
 			});
 

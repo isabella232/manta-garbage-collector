@@ -45,7 +45,7 @@
 				},
 				{
 					"bucket": "manta_delete_log",
-					"concurrency": 1
+					"concurrency": 2
 				}
 			]
 		}

@@ -9,6 +9,7 @@
  */
 
 var mod_cmdutil = require('cmdutil');
+var mod_jsprim = require('jsprim');
 var mod_manta = require('manta');
 var mod_moray = require('moray');
 var mod_getopt = require('posix-getopt');
