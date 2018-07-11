@@ -62,7 +62,9 @@ do_gc_worker_basic_test(test_done)
 		},
 		function create_gc_worker(ctx, next) {
 			var shard = Object.keys(ctx.ctx_moray_clients)[0];
-			worker = lib_testcommon.create_gc_worker(ctx, shard, ctx.ctx_log);
+			worker = lib_testcommon.create_gc_worker(ctx, shard,
+				lib_testcommon.MANTA_FASTDELETE_QUEUE,
+				ctx.ctx_log);
 			next(null, ctx, worker, shard)
 		},
 		function create_records(ctx, worker, shard, next) {

@@ -24,21 +24,39 @@
 	},
 	"shards": [
 		{
-			"host": "1.moray.orbit.example.com"
+			"host": "1.moray.orbit.example.com",
+			"buckets": [
+				{
+					"bucket": "manta_fastdelete_queue",
+					"concurrency": 0
+				},
+				{
+					"bucket": "manta_delete_log",
+					"concurrency": 0
+				}
+			]
 		},
 		{
-			"host": "2.moray.orbit.example.com"
+			"host": "2.moray.orbit.example.com",
+			"buckets": [
+				{
+					"bucket": "manta_fastdelete_queue",
+					"concurrency": 0
+				},
+				{
+					"bucket": "manta_delete_log",
+					"concurrency": 1
+				}
+			]
 		}
 	],
 	"params": {
 		"mako": {
-			"concurrency": 1,
-			"instr_upload_batch_size": 50,
-			"instr_upload_flush_delay": 5000,
+			"instr_upload_batch_size": 100,
+			"instr_upload_flush_delay": 120000,
 			"instr_upload_path_prefix": "/poseidon/stor/manta_gc/mako"
 		},
 		"moray": {
-			"concurrency": 1,
 			"record_read_batch_size": 50,
 			"record_read_wait_interval": 5000,
 			"record_read_sort_attr": "_mtime",
@@ -47,5 +65,5 @@
 			"record_delete_delay": 5000
 		}
 	},
-	"zoneId": "0e176aeb-3a6b-cf90-b846-9e1d293ac1ae"
+	"zone_id": "0e176aeb-3a6b-cf90-b846-9e1d293ac1ae"
 }

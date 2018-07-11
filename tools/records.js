@@ -67,7 +67,7 @@ main()
 	var parser = new mod_getopt.BasicParser('b:(bucket)c:(concurrency)d:(delay)',
 		process.argv);
 
-	while ((options = parser.getopt()) !== undefined) {
+	while ((option = parser.getopt()) !== undefined) {
 		switch (option.option) {
 			case 'b':
 				config.bucket = option.optarg;

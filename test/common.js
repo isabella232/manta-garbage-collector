@@ -223,8 +223,9 @@ remove_fake_delete_record(ctx, client, key, done)
 
 
 function
-create_gc_worker(ctx, shard, log) {
+create_gc_worker(ctx, shard, bucket, log) {
 	var opts = {
+		bucket: bucket,
 		ctx: ctx,
 		shard: shard,
 		log: log

@@ -65,7 +65,13 @@ load_config(ctx, done)
 
 		ctx.ctx_log.info('loaded configuration file "%s"', ctx.ctx_cfgfile);
 
-		var err = mod_schema.validate_shard_cfg(out.params.moray);
+		var err = mod_schema.validate_shards_cfg(out.shards);
+		if (err) {
+			done(new VE(err, 'malformed shards ocnfiguration'));
+			return;
+		}
+
+		var err = mod_schema.validate_moray_cfg(out.params.moray);
 		if (err) {
 			done(new VE(err, 'malformed moray configuration'));
 			return;
@@ -84,7 +90,7 @@ load_config(ctx, done)
 }
 
 function
-create_moray_clients(ctx, done)
+setup_moray_clients(ctx, done)
 {
 	ctx.ctx_moray_clients = {};
 	ctx.ctx_moray_cfgs = {};
@@ -92,7 +98,18 @@ create_moray_clients(ctx, done)
 	mod_vasync.forEachPipeline({
 		inputs: ctx.ctx_cfg.shards,
 		func: function create_moray_client(shard, next) {
-			lib_common.create_moray_client(ctx, shard.host, next)
+			lib_common.create_moray_client(ctx, shard.host,
+				function (err, client) {
+				if (err) {
+					next(err);
+					return;
+				}
+				ctx.ctx_moray_clients[shard.host] = client;
+				ctx.ctx_moray_cfgs[shard.host] = mod_jsprim.mergeObjects(
+					shard, ctx.ctx_cfg.params.moray);
+				next();
+			});
+
 		}
 	}, function (err) {
 		if (err) {
@@ -104,7 +121,7 @@ create_moray_clients(ctx, done)
 }
 
 function
-create_manta_client(ctx, done)
+setup_manta_client(ctx, done)
 {
 	var overrides = {
 		log: ctx.ctx_log
@@ -146,12 +163,12 @@ main()
 		 * configuration. Options passed to the client are uniform and
 		 * specified in the file loaded in load_config.
 		 */
-		create_moray_clients,
+		setup_moray_clients,
 
 		/*
 		 * Create one manta client.
 		 */
-		create_manta_client,
+		setup_manta_client,
 
 		/*
 		 * Create the restify server used for exposing configuration to

@@ -24,12 +24,24 @@ var TEST_OWNER_TWO = mod_uuidv4();
 
 var TEST_INSTRUCTIONS = {
 	'1.stor.orbit.example.com': [
-		[TEST_OWNER_ONE, mod_uuidv4()],
-		[TEST_OWNER_TWO, mod_uuidv4()]
+		{
+			transformed: [TEST_OWNER_ONE, mod_uuidv4()],
+			key: mod_path.join(TEST_OWNER_ONE, mod_uuidv4())
+		},
+		{
+			transformed: [TEST_OWNER_TWO, mod_uuidv4()],
+			key: mod_path.join(TEST_OWNER_ONE, mod_uuidv4())
+		}
 	],
 	'2.stor.orbit.example.com': [
-		[TEST_OWNER_ONE, mod_uuidv4()],
-		[TEST_OWNER_TWO, mod_uuidv4()]
+		{
+			transformed: [TEST_OWNER_ONE, mod_uuidv4()],
+			key: mod_path.join(TEST_OWNER_TWO, mod_uuidv4())
+		},
+		{
+			transformed: [TEST_OWNER_TWO, mod_uuidv4()],
+			key: mod_path.join(TEST_OWNER_TWO, mod_uuidv4())
+		}
 	]
 };
 
@@ -40,8 +52,8 @@ var TEST_EXPECTED_CLEANUP_KEYS = (function () {
 		var key = Object.keys(TEST_INSTRUCTIONS)[i];
 		var value = TEST_INSTRUCTIONS[key];
 
-		keys = keys.concat(value.map(function (pair) {
-			return pair.join('/');
+		keys = keys.concat(value.map(function (instr) {
+			return (instr.key);
 		}));
 	}
 	return (keys);
@@ -191,9 +203,9 @@ main()
 				 * matching the expected output key.
 				 */
 				function search_object_data(chunks, cb) {
-					function search(chunk, pair) {
-						var substr = pair.join('\t');
-						var key = pair.join('/');
+					function search(chunk, instr) {
+						var substr = instr.transformed.join('\t');
+						var key = instr.key;
 
 						if (chunk.indexOf(substr) !== -1) {
 							mod_assertplus.ok(!instrs_found.hasOwnProperty(key),

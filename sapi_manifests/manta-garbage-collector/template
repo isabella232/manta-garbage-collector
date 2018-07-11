@@ -34,7 +34,12 @@
 			"instr_upload_flush_delay": {{GC_INSTR_UPLOAD_FLUSH_DELAY}},
 			"instr_upload_path_prefix": "{{GC_INSTR_UPLOAD_PATH_PREFIX}}"
 		},
-		"manta": {
+		"moray": {
+			"buckets": [
+				{{#GC_RECORD_READ_BUCKETS}}
+				"{{bucket}}"{{^last}},{{/last}}
+				{{/GC_RECORD_READ_BUCKETS}}
+			],
 			"concurrency": {{GC_MORAY_CONCURRENCY}},
 			"record_read_batch_size": {{GC_RECORD_READ_BATCH_SIZE}},
 			"record_read_wait_interval": {{GC_RECORD_READ_WAIT_INTERVAL}},
@@ -44,5 +49,5 @@
 			"record_delete_delay": {{GC_RECORD_DELETE_DELAY}}
 		}
 	},
-	"zoneId": "{{auto.ZONENAME}}"
+	"zone_id": "{{auto.ZONENAME}}"
 }

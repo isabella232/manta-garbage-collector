@@ -222,7 +222,7 @@ run_delete_record_transformer_test(num_records, test_done)
 
 					for (var j = 0; j < instrs_received[storage_id].length;
 						j++) {
-						check_instr_fmt(instrs_received[storage_id][j]);
+						check_instr_fmt(instrs_received[storage_id][j].transformed);
 					}
 				}
 				next(null, transformer, listeners, ctx, shard);
