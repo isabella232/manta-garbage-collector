@@ -49,5 +49,8 @@
 			"record_delete_delay": {{GC_RECORD_DELETE_DELAY}}
 		}
 	},
-	"zone_id": "{{auto.ZONENAME}}"
+	"instance_uuid": "{{auto.ZONENAME}}",
+	"server_uuid": "{{auto.SERVER_UUID}}",
+	"service_name": "{{SERVICE_NAME}}",
+	"datacenter": "{{DATACENTER}}"
 }

@@ -15,6 +15,7 @@ var mod_jsprim = require('jsprim');
 var mod_manta = require('manta');
 var mod_moray = require('moray');
 var mod_path = require('path');
+var mod_restify = require('restify');
 var mod_vasync = require('vasync');
 var mod_verror = require('verror');
 
@@ -24,8 +25,8 @@ var mod_schema = require('../lib/schema');
 var lib_common = require('../lib/common');
 var lib_http_server = require('../lib/http_server');
 
+var createMetricsManager = require('triton-metrics').createMetricsManager;
 var VE = mod_verror.VError;
-
 
 function
 retry(func, ctx, done, nsecs)
@@ -124,6 +125,7 @@ setup_moray_clients(ctx, done)
 	});
 }
 
+
 function
 setup_manta_client(ctx, done)
 {
@@ -137,6 +139,48 @@ setup_manta_client(ctx, done)
 
 	ctx.ctx_mako_cfg = mod_jsprim.deepCopy(ctx.ctx_cfg.params.mako);
 	setImmediate(done);
+}
+
+
+function
+setup_metrics(ctx, done)
+{
+	var metrics_manager = createMetricsManager({
+		address: '0.0.0.0',
+		log: ctx.ctx_log.child({
+			component: 'MetricsManager'
+		}),
+		staticLabels: {
+			datacenter: ctx.ctx_cfg.datacenter,
+			instance: ctx.ctx_cfg.instance,
+			server: ctx.ctx_cfg.server_uuid,
+			service: ctx.ctx_cfg.service_name
+		},
+		port: ctx.ctx_cfg.port + 1000,
+		restify: mod_restify
+	});
+
+	/*
+	 * Application layer metrics
+	 */
+
+	metrics_manager.collector.histogram({
+		name: 'delete_records_read',
+		help: 'number of records read per rpc'
+	});
+
+	metrics_manager.collector.histogram({
+		name: 'delete_records_cleaned',
+		help: 'number of records removed per rpc'
+	});
+
+	metrics_manager.collector.histogram({
+		name: 'mako_instrs_uploaded',
+		help: 'number of instructions uploaded per manta put'
+	});
+
+	ctx.ctx_metrics_manager = metrics_manager;
+	ctx.ctx_metrics_manager.listen(done);
 }
 
 
@@ -161,6 +205,12 @@ main()
 		 * information for creating the clients below.
 		 */
 		load_config,
+
+		/*
+		 * Create metrics manager and install application level
+		 * collectors.
+		 */
+		setup_metrics,
 
 		/*
 		 * Create one node-moray client per shard specified by the

@@ -19,7 +19,8 @@
     "mooremachine": "2.2.1",
     "moray": "^3.3.0",
     "moray-filter": "1.0.0",
-    "restify": "^6.2.3",
+    "restify": "4.3.4",
+    "triton-metrics": "0.2.0",
     "uuid": "3.2.1",
     "vasync": "^2.1.0",
     "verror": "^1.10.0"
