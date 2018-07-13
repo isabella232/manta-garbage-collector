@@ -87,6 +87,7 @@ create_mock_context(done)
 						ctx.ctx_moray_clients[shard] = client;
 						ctx.ctx_moray_cfgs[shard] = mod_jsprim.deepCopy(
 							ctx.ctx_cfg.params.moray);
+						ctx.ctx_moray_cfgs[shard].record_read_offset = 0;
 						cb();
 					});
 

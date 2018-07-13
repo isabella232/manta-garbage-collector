@@ -97,21 +97,30 @@ setup_moray_clients(ctx, done)
 	ctx.ctx_moray_cfgs = {};
 
 	var moray_defaults = {
-		record_read_offset: 0
+		record_read_offset: 0,
+		buckets: ctx.ctx_cfg.shards.buckets
 	};
 
+
+	var shard_num_range = ctx.ctx_cfg.shards.interval;
+	var domains = [];
+
+	for (var i = shard_num_range[0]; i <= shard_num_range[1]; i++) {
+		domains.push([i, ctx.ctx_cfg.shards.domain_suffix].join('.'));
+	}
+
 	mod_vasync.forEachPipeline({
-		inputs: ctx.ctx_cfg.shards,
-		func: function create_moray_client(shard, next) {
-			lib_common.create_moray_client(ctx, shard.host,
+		inputs: domains,
+		func: function create_moray_client(domain, next) {
+			lib_common.create_moray_client(ctx, domain,
 				function (err, client) {
 				if (err) {
 					next(err);
 					return;
 				}
-				ctx.ctx_moray_clients[shard.host] = client;
-				ctx.ctx_moray_cfgs[shard.host] = mod_jsprim.mergeObjects(
-					shard, ctx.ctx_cfg.params.moray, moray_defaults);
+				ctx.ctx_moray_clients[domain] = client;
+				ctx.ctx_moray_cfgs[domain] = mod_jsprim.mergeObjects(
+					ctx.ctx_cfg.params.moray, moray_defaults);
 				next();
 			});
 

@@ -22,24 +22,27 @@
 			}
 		}
 	},
-	"shards": [
-		{{#INDEX_MORAY_SHARDS}}
-		"{{host}}"{{^last}},{{/last}}
-		{{/INDEX_MORAY_SHARDS}}
-	],
+	"shards": {
+		"interval": [{{GC_SHARD_NUM_LO}}, {{GC_SHARD_NUM_HI}}],
+		"domain_suffix": "moray.{{DOMAIN_NAME}}",
+		"buckets": [
+			{
+				"bucket": "manta_delete_log",
+				"concurrency": 1
+			},
+			{
+				"bucket": "manta_fastdelete_queue",
+				"concurrency": 0
+			}
+		]
+	},
 	"params": {
 		"mako": {
-			"concurrency": {{GC_MAKO_CONCURRENCY}},
 			"instr_upload_batch_size": {{GC_INSTR_UPLOAD_BATCH_SIZE}},
 			"instr_upload_flush_delay": {{GC_INSTR_UPLOAD_FLUSH_DELAY}},
 			"instr_upload_path_prefix": "{{GC_INSTR_UPLOAD_PATH_PREFIX}}"
 		},
 		"moray": {
-			"buckets": [
-				{{#GC_RECORD_READ_BUCKETS}}
-				"{{bucket}}"{{^last}},{{/last}}
-				{{/GC_RECORD_READ_BUCKETS}}
-			],
 			"concurrency": {{GC_MORAY_CONCURRENCY}},
 			"record_read_batch_size": {{GC_RECORD_READ_BATCH_SIZE}},
 			"record_read_wait_interval": {{GC_RECORD_READ_WAIT_INTERVAL}},
@@ -49,6 +52,8 @@
 			"record_delete_delay": {{GC_RECORD_DELETE_DELAY}}
 		}
 	},
+	"address": "0.0.0.0",
+	"port": 2020,
 	"instance_uuid": "{{auto.ZONENAME}}",
 	"server_uuid": "{{auto.SERVER_UUID}}",
 	"service_name": "{{SERVICE_NAME}}",

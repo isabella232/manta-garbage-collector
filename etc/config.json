@@ -22,34 +22,20 @@
 			}
 		}
 	},
-	"shards": [
-		{
-			"host": "1.moray.orbit.example.com",
-			"buckets": [
-				{
-					"bucket": "manta_fastdelete_queue",
-					"concurrency": 0
-				},
-				{
-					"bucket": "manta_delete_log",
-					"concurrency": 0
-				}
-			]
-		},
-		{
-			"host": "2.moray.orbit.example.com",
-			"buckets": [
-				{
-					"bucket": "manta_fastdelete_queue",
-					"concurrency": 0
-				},
-				{
-					"bucket": "manta_delete_log",
-					"concurrency": 2
-				}
-			]
-		}
-	],
+	"shards": {
+		"domain_suffix": "moray.orbit.example.com",
+		"interval": [1, 1],
+		"buckets": [
+			{
+				"bucket": "manta_fastdelete_queue",
+				"concurrency": 0
+			},
+			{
+				"bucket": "manta_delete_log",
+				"concurrency": 1
+			}
+		]
+	},
 	"params": {
 		"mako": {
 			"instr_upload_batch_size": 100,

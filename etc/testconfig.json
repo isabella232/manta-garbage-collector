@@ -16,14 +16,6 @@
 	"shards": [
 		{
 			"srvDomain": "2.moray.orbit.example.com",
-			"buckets": [
-				{
-					"bucket": "manta_fastdelete_queue"
-				},
-				{
-					"bucket": "manta_delete_log"
-				}
-			],
 			"cueballOptions": {
 				"resolvers": [
 					"nameservice.orbit.example.com"
@@ -48,5 +40,10 @@
 			"record_delete_delay": 5000
 		}
 	},
-	"zone_id": "0e176aeb-3a6b-cf90-b846-9e1d293ac1ae"
+	"address": "0.0.0.0",
+	"port": 2020,
+	"instance": "0e176aeb-3a6b-cf90-b846-9e1d293ac1ae",
+	"datacenter": "orbit.example.com",
+	"server_uuid": "5f183d10-b44a-ca1c-e5b7-bf9e9b940764",
+	"service_name": "garbage-collector"
 }
