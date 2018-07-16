@@ -103,7 +103,20 @@ INSTALL_DIRS =			$(addprefix $(PROTO), \
 INSTALL_EXEC =			rm -f $@ && cp $< $@ && chmod 755 $@
 INSTALL_FILE =			rm -f $@ && cp $< $@ && chmod 644 $@
 
-CATEST_FILES = 			$(shell find test -name '*.test.js')
+CATEST_FILES = 			$(shell find test -name 'gc_worker.test.js')
+
+JS_FILES =			$(shell find cmd -name '*.js') \
+				$(shell find lib -name '*.js') \
+				$(shell find tools -name '*.js')
+
+JSL_FILES_NODE = 		$(JS_FILES)
+
+JSSTYLE_FILES = 		$(JS_FILES)
+
+JSL_CONF_NODE = 		tools/jsl.node.conf
+
+JSON_FILES = 			package.json
+
 
 .PHONY: test
 test: | $(CATEST)

@@ -8,6 +8,7 @@
  * Copyright (c) 2018, Joyent, Inc.
  */
 
+var mod_assertplus = require('assert-plus');
 var mod_cmdutil = require('cmdutil');
 var mod_jsprim = require('jsprim');
 var mod_manta = require('manta');
@@ -25,7 +26,7 @@ var create_record = lib_testcommon.create_fake_delete_record;
 function
 random()
 {
-	return Math.floor(Math.random());
+	return (Math.floor(Math.random()));
 }
 
 var TEST_OWNER = mod_uuidv4();
@@ -51,7 +52,7 @@ Object.keys(OPTS).forEach(function (arg) {
 function
 main()
 {
-	var options;
+	var option;
 
 	var config = {
 		bucket: lib_testcommon.MANTA_FASTDELETE_QUEUE,
@@ -65,8 +66,8 @@ main()
 	});
 	mod_cmdutil.exitOnEpipe();
 
-	var parser = new mod_getopt.BasicParser('b:(bucket)c:(concurrency)d:(delay)',
-		process.argv);
+	var parser = new mod_getopt.BasicParser('b:(bucket)c:(concurrency)' +
+		'd:(delay)', process.argv);
 
 	while ((option = parser.getopt()) !== undefined) {
 		switch (option.option) {
@@ -98,21 +99,16 @@ main()
 
 			function upload_record() {
 				/*
-				 * Randomly choose between zero byte and non-zero byte
-				 * objects.
+				 * Randomly choose between zero byte and
+				 * non-zero byte objects.
 				 */
-				var sharks = random() == 0 ? TEST_SHARKS : TEST_NO_SHARKS;
-				create_record(ctx, client, config.bucket, TEST_OWNER,
-					mod_uuidv4(), sharks, function (err) {
-					if (err) {
-						ctx.ctx_log.error(err, 'failed to upload ' +
-							'record');
-					} else {
-						ctx.ctx_log.info('successfully uploaded ' +
-							'record');
-					}
-
-					setTimeout(upload_record, config.delay);
+				var sharks = random() === 0 ? TEST_SHARKS :
+					TEST_NO_SHARKS;
+				create_record(ctx, client, config.bucket,
+					TEST_OWNER, mod_uuidv4(), sharks,
+					function (err) {
+					setTimeout(upload_record,
+						config.delay);
 				});
 			}
 

@@ -60,27 +60,35 @@ load_config(ctx, done)
 		try {
 			out = JSON.parse(data.toString('utf8'));
 		} catch (e) {
-			done(new VE(e, 'error parsing file "%s"', ctx.ctx_cfgfile));
+			done(new VE(e, 'error parsing file "%s"',
+				ctx.ctx_cfgfile));
 			return;
 		}
 
-		ctx.ctx_log.info('loaded configuration file "%s"', ctx.ctx_cfgfile);
+		ctx.ctx_log.info('loaded configuration file "%s"',
+			ctx.ctx_cfgfile);
 
-		var err = mod_schema.validate_shards_cfg(out.shards);
-		if (err) {
-			done(new VE(err, 'malformed shards ocnfiguration'));
+		var schema_err = mod_schema.validate_shards_cfg(
+			out.shards);
+		if (schema_err) {
+			done(new VE(schema_err, 'malformed shards ' +
+				'configuration'));
 			return;
 		}
 
-		var err = mod_schema.validate_moray_cfg(out.params.moray);
-		if (err) {
-			done(new VE(err, 'malformed moray configuration'));
+		schema_err = mod_schema.validate_moray_cfg(
+			out.params.moray);
+		if (schema_err) {
+			done(new VE(schema_err, 'malformed moray ' +
+				'configuration'));
 			return;
 		}
 
-		err = mod_schema.validate_mako_cfg(out.params.mako);
-		if (err) {
-			done(new VE(err, 'malformed mako configuration'));
+		schema_err = mod_schema.validate_mako_cfg(
+			out.params.mako);
+		if (schema_err) {
+			done(new VE(schema_err, 'malformed mako ' +
+				'configuration'));
 			return;
 		}
 
@@ -118,9 +126,12 @@ setup_moray_clients(ctx, done)
 					next(err);
 					return;
 				}
+				var cfg = mod_jsprim.mergeObjects(
+					ctx.ctx_cfg.params.moray,
+					moray_defaults);
+
 				ctx.ctx_moray_clients[domain] = client;
-				ctx.ctx_moray_cfgs[domain] = mod_jsprim.mergeObjects(
-					ctx.ctx_cfg.params.moray, moray_defaults);
+				ctx.ctx_moray_cfgs[domain] =  cfg;
 				next();
 			});
 
@@ -141,7 +152,8 @@ setup_manta_client(ctx, done)
 	var overrides = {
 		log: ctx.ctx_log
 	};
-	var manta_cfg = mod_jsprim.mergeObjects(ctx.ctx_cfg.manta, overrides, null);
+	var manta_cfg = mod_jsprim.mergeObjects(ctx.ctx_cfg.manta,
+		overrides, null);
 
 	ctx.ctx_manta_client = mod_manta.createClient(manta_cfg);
 	ctx.ctx_log.debug('created manta client');
@@ -204,8 +216,8 @@ main()
 
 	var log = ctx.ctx_log = mod_bunyan.createLogger({
 		name: 'garbage-collector',
-	    	level: process.env.LOG_LEVEL || mod_bunyan.DEBUG,
-	    	serializers: mod_bunyan.stdSerializers
+		level: process.env.LOG_LEVEL || mod_bunyan.DEBUG,
+		serializers: mod_bunyan.stdSerializers
 	});
 
 	mod_vasync.pipeline({ arg: ctx, funcs: [
