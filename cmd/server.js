@@ -76,6 +76,13 @@ load_config(ctx, done)
 			return;
 		}
 
+		schema_err = mod_schema.validate_creators_cfg(
+			out.creators);
+		if (schema_err) {
+			done(new VE(schema_err, 'malformed creators config'));
+			return;
+		}
+
 		schema_err = mod_schema.validate_moray_cfg(
 			out.params.moray);
 		if (schema_err) {
@@ -97,6 +104,7 @@ load_config(ctx, done)
 		setImmediate(done);
 	});
 }
+
 
 function
 setup_moray_clients(ctx, done)

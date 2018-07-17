@@ -20,12 +20,20 @@ var lib_testcommon = require('./common');
 
 var TEST_OWNER = mod_uuidv4();
 var TEST_OBJECTID = mod_uuidv4();
-var DELAY = 3000;
+
+/*
+ * We create an object with this user to ensure that the 'creators' filter in
+ * the garbage collector's configuration is correctly applied.
+ */
+var TEST_OTHER_OWNER = mod_uuidv4();
+var TEST_OTHER_OBJECTID = mod_uuidv4();
+
+var DELAY = 5000;
 var LONG_DELAY = 16000;
 
 
 function
-do_basic_test()
+do_basic_test(test_done)
 {
 	mod_vasync.waterfall([
 		function setup_context(next) {
@@ -35,6 +43,12 @@ do_basic_test()
 					next(err);
 					return;
 				}
+
+				ctx.ctx_cfg.creators = [
+					{
+						uuid: TEST_OWNER
+					}
+				];
 
 				var shard = Object.keys(ctx.ctx_moray_clients)[0];
 
@@ -54,8 +68,24 @@ do_basic_test()
 				next(null, ctx, shard);
 			});
 		},
+		function create_other_delete_record(ctx, shard, next) {
+			lib_testcommon.create_fake_delete_record(ctx,
+				ctx.ctx_moray_clients[shard],
+				lib_testcommon.MANTA_FASTDELETE_QUEUE,
+				TEST_OTHER_OWNER, TEST_OTHER_OBJECTID, [],
+				function (err) {
+				if (err) {
+					ctx.ctx_log.error(err, 'unable to creator other ' +
+						'delete record');
+					next(err);
+					return;
+				}
+				next(null, ctx, shard);
+			});
+		},
 		function read_delete_record(ctx, shard, next) {
 			var key = mod_path.join(TEST_OWNER, TEST_OBJECTID);
+			var other_key = mod_path.join(TEST_OTHER_OWNER, TEST_OTHER_OBJECTID);
 			var listener = new mod_events.EventEmitter();
 			var reader = lib_testcommon.create_moray_delete_record_reader(ctx,
 				shard, listener);
@@ -63,37 +93,56 @@ do_basic_test()
 			var timer = setTimeout(function () {
 				listener.removeAllListeners('record');
 				mod_assertplus.ok(false, 'did not receive record event');
-				next(null, ctx, shard);
+				next(null, reader, ctx, shard);
 			}, DELAY);
 
 			listener.once('record', function (record) {
-				clearTimeout(timer);
 				ctx.ctx_log.debug({
 					received_key: record.key,
 					expected_key: key,
 					record: mod_util.inspect(record)
 				}, 'received record');
-				mod_assertplus.equal(record.key, key, 'unexpected key ' +
-					'from record sent to listener');
-				ctx.ctx_log.info('test passed');
-				next(null, ctx, shard);
+				mod_assertplus.notEqual(TEST_OTHER_OWNER, record.creator,
+					'received record from unexpected owner');
+
+				if (record.key === key) {
+					clearTimeout(timer);
+					next(null, reader, ctx, shard);
+				}
 			});
-		}, function remove_fake_delete_record(ctx, shard, next) {
-			lib_testcommon.remove_fake_delete_record(ctx, ctx.ctx_moray_clients[shard],
-				mod_path.join(TEST_OWNER, TEST_OBJECTID), next);
+		},
+		function shutdown_reader(reader, ctx, shard, next) {
+			reader.emit('shutdown');
+			next(null, ctx, shard);
+		},
+		function remove_fake_delete_record(ctx, shard, next) {
+			mod_vasync.forEachPipeline({
+				inputs: [
+					mod_path.join(TEST_OWNER, TEST_OBJECTID),
+					mod_path.join(TEST_OTHER_OWNER, TEST_OTHER_OBJECTID)
+				],
+				func: function remove(key, done) {
+					lib_testcommon.remove_fake_delete_record(ctx,
+						ctx.ctx_moray_clients[shard], key,
+						done);
+				}
+			}, function (err) {
+				mod_assertplus.ok(!err, 'error removing delete records');
+				next(err);
+			});
 		}
 	], function (err) {
 		if (err) {
 			process.exit(1);
 		}
 		console.log('tests passed');
-		process.exit(0);
+		test_done();
 	});
 }
 
 
 function
-do_error_test()
+do_error_test(test_done)
 {
 	mod_vasync.waterfall([
 		function setup_context(next) {
@@ -106,13 +155,19 @@ do_error_test()
 
 				var shard = Object.keys(ctx.ctx_moray_clients)[0];
 
+				ctx.ctx_cfg.creators = [
+					{
+						uuid: TEST_OWNER
+					}
+				];
+
 				var client = ctx.ctx_moray_clients[shard];
 				delete (ctx.ctx_moray_clients[shard]);
 
 				next(null, ctx, shard, client);
 			});
 		},
-		function create_reader(ctx, shard, client) {
+		function create_reader(ctx, shard, client, next) {
 			var listener = new mod_events.EventEmitter();
 			var reader = lib_testcommon.create_moray_delete_record_reader(
 				ctx, shard, listener);
@@ -132,7 +187,8 @@ do_error_test()
 				next(null, ctx, shard, client, reader, listener);
 			}, LONG_DELAY);
 		},
-		function create_fake_record(ctx, shard, client, reader, listener) {
+		function create_fake_record(ctx, shard, client, reader, listener,
+			next) {
 			lib_testcommon.create_fake_delete_record(ctx, client,
 				lib_testcommon.MANTA_FASTDELETE_QUEUE, TEST_OWNER,
 				TEST_OBJECTID, [], function (err) {
@@ -144,7 +200,7 @@ do_error_test()
 				next(null, ctx, shard, client, reader, listener);
 			});
 		},
-		function give_back_moray_client(ctx, shard, client, reader, listener) {
+		function give_back_moray_client(ctx, shard, client, reader, listener, next) {
 			var received_record = false;
 			listener.on('record', function (record) {
 				received_record = true;
@@ -159,17 +215,102 @@ do_error_test()
 				mod_assertplus.ok(received_record, 'did not receive record ' +
 					'after moray client returned');
 				lib_testcommon.remove_fake_delete_record(ctx, client,
-					mod_path.join(TEST_OWNER, TEST_OBJECTID), next);
+					mod_path.join(TEST_OWNER, TEST_OBJECTID),
+					function (err) {
+					next(err, ctx, reader);
+				});
 			}, LONG_DELAY);
+		},
+		function shutdown_reader(ctx, reader, next) {
+			reader.emit('shutdown');
+			next();
 		}
 	], function (err) {
 		if (err) {
 			process.exit(1);
 		}
-		console.log('tests passed');
-		process.exit(0);
+		test_done();
 	});
 }
 
-do_basic_test();
-do_error_test();
+
+function
+do_filter_test(test_done)
+{
+	mod_vasync.waterfall([
+		function setup_context(next) {
+			lib_testcommon.create_mock_context(function (err, ctx) {
+				if (err) {
+					console.log('error creating context');
+					next(err);
+					return;
+				}
+
+				var shard = Object.keys(ctx.ctx_moray_clients)[0];
+
+				ctx.ctx_cfg.creators = [
+					{
+						uuid: TEST_OWNER
+					}
+				];
+
+				var client = ctx.ctx_moray_clients[shard];
+				delete (ctx.ctx_moray_clients[shard]);
+
+				next(null, ctx, shard, client);
+			});
+		},
+		function create_fake_delete_record(ctx, shard, client, next) {
+			lib_testcommon.create_fake_delete_record(ctx, client,
+				lib_testcommon.MANTA_FASTDELETE_QUEUE,
+				TEST_OTHER_OWNER, TEST_OTHER_OBJECTID, [],
+				function (err) {
+				if (err) {
+					ctx.ctx_log.error(err, 'unabled to create delete record');
+					next(err);
+					return;
+				}
+				next(null, ctx, shard, client);
+			});
+		},
+		function create_reader(ctx, shard, client, next) {
+			var listener = new mod_events.EventEmitter();
+			var reader = lib_testcommon.create_moray_delete_record_reader(
+				ctx, shard, listener);
+
+			listener.on('record', function (record) {
+				mod_assertplus.equal(record.value.creator, TEST_OWNER,
+					'received record with unexpected creator');
+			});
+
+			setTimeout(function () {
+				next(null, ctx, shard, client);
+			}, DELAY);
+		},
+		function remove_record(ctx, shard, client, next) {
+			lib_testcommon.remove_fake_delete_record(ctx, client,
+				mod_path.join(TEST_OTHER_OWNER, TEST_OTHER_OBJECTID),
+				next);
+		}
+	], function (err) {
+		test_done(err)
+	});
+}
+
+
+mod_vasync.pipeline({ funcs: [
+	function (_, next) {
+		do_basic_test(next);
+	},
+	function (_, next) {
+		do_error_test(next);
+	},
+	function (_, next) {
+		do_filter_test(next);
+	}
+]}, function (err) {
+	if (err) {
+		process.exit(1);
+	}
+	process.exit(0);
+});

@@ -36,6 +36,11 @@
 			}
 		]
 	},
+	"creators": [
+		{
+			"uuid": "edfb68bf-c9bd-c024-ed9a-f871d212d314"
+		}
+	],
 	"params": {
 		"mako": {
 			"instr_upload_batch_size": 100,

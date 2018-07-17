@@ -59,7 +59,14 @@ do_gc_worker_basic_test(test_done)
 {
 	mod_vasync.waterfall([
 		function create_context(next) {
-			lib_testcommon.create_mock_context(next);
+			lib_testcommon.create_mock_context(function (err, ctx) {
+				ctx.ctx_cfg.creators = [
+					{
+						uuid: TEST_OWNER
+					}
+				];
+				next(err, ctx);
+			});
 		},
 		function create_gc_worker(ctx, next) {
 			var shard = Object.keys(ctx.ctx_moray_clients)[0];
