@@ -107,54 +107,6 @@ load_config(ctx, done)
 
 
 function
-setup_moray_clients(ctx, done)
-{
-	ctx.ctx_moray_clients = {};
-	ctx.ctx_moray_cfgs = {};
-
-	var moray_defaults = {
-		record_read_offset: 0,
-		buckets: ctx.ctx_cfg.shards.buckets
-	};
-
-
-	var shard_num_range = ctx.ctx_cfg.shards.interval;
-	var domains = [];
-
-	for (var i = shard_num_range[0]; i <= shard_num_range[1]; i++) {
-		domains.push([i, ctx.ctx_cfg.shards.domain_suffix].join('.'));
-	}
-
-	mod_vasync.forEachPipeline({
-		inputs: domains,
-		func: function create_moray_client(domain, next) {
-			lib_common.create_moray_client(ctx, domain,
-				function (err, client) {
-				if (err) {
-					next(err);
-					return;
-				}
-				var cfg = mod_jsprim.mergeObjects(
-					ctx.ctx_cfg.params.moray,
-					moray_defaults);
-
-				ctx.ctx_moray_clients[domain] = client;
-				ctx.ctx_moray_cfgs[domain] =  cfg;
-				next();
-			});
-
-		}
-	}, function (err) {
-		if (err) {
-			done(new VE(err, 'creating moray clients'));
-			return;
-		}
-		done();
-	});
-}
-
-
-function
 setup_manta_client(ctx, done)
 {
 	var overrides = {
@@ -219,7 +171,21 @@ main()
 	var ctx = {
 		ctx_cfgfile: mod_path.join(__dirname, '..', 'etc',
 			'config.json'),
-		ctx_cfgfile_notfound: 0
+		ctx_cfgfile_notfound: 0,
+
+		/*
+		 * Holds the per-shard configuration for all gc workers
+		 * processing delete records from this shard. This configuration
+		 * includes the buckets that workers should read, in addition to
+		 * tunables listed in the 'moray-cfg' schema in lib/schema.js.
+		 */
+		ctx_moray_cfgs: {},
+
+		/*
+		 * Holds a mapping from full shard domain to the client that
+		 * each worker uses send RPCs to particular shards.
+		 */
+		ctx_moray_clients: {}
 	};
 
 	var log = ctx.ctx_log = mod_bunyan.createLogger({
@@ -242,27 +208,20 @@ main()
 		setup_metrics,
 
 		/*
-		 * Create one node-moray client per shard specified by the
-		 * configuration. Options passed to the client are uniform and
-		 * specified in the file loaded in load_config.
-		 */
-		setup_moray_clients,
-
-		/*
 		 * Create one manta client.
 		 */
 		setup_manta_client,
 
 		/*
+		 * Create the gc manager
+		 */
+		mod_gc_manager.create_gc_manager,
+
+		/*
 		 * Create the restify server used for exposing configuration to
 		 * the operator.
 		 */
-		lib_http_server.create_http_server,
-
-		/*
-		 * Create the gc manager
-		 */
-		mod_gc_manager.create_gc_manager
+		lib_http_server.create_http_server
 	] }, function (err) {
 		if (err) {
 			log.fatal(err, 'startup failure');
