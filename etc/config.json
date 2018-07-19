@@ -28,7 +28,7 @@
 		"buckets": [
 			{
 				"bucket": "manta_fastdelete_queue",
-				"concurrency": 0
+				"concurrency": 1
 			},
 			{
 				"bucket": "manta_delete_log",

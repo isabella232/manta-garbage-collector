@@ -178,9 +178,10 @@ create_delete_record_transformer(ctx, shard, listeners)
 function
 create_fake_delete_record(ctx, client, bucket, owner, objectId, sharks, done)
 {
+	var key = mod_path.join(objectId, (sharks.length > 0) ? sharks[0] : owner);
 	var value = {
 		dirname: 'manta_gc_test',
-		key: mod_path.join(owner, objectId),
+		key: key,
 		headers: {},
 		mtime: Date.now(),
 		name: 'manta_gc_test_obj',

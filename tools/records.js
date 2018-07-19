@@ -39,7 +39,10 @@ var TEST_NO_SHARKS = [];
 var OPTS = {
 	'-b': 'bucket (default: manta_fastdelete_queue)',
 	'-c': 'concurrency (default: 1)',
-	'-d': 'ms delay delay (default: 1000)'
+	'-d': 'ms delay delay (default: 1000)',
+	'-a': 'account uuid',
+	'-z': 'zero byte objects only',
+	'-s': 'non-zero-byte objects only'
 };
 
 /* construct the usage message */
@@ -57,7 +60,8 @@ main()
 	var config = {
 		bucket: lib_testcommon.MANTA_FASTDELETE_QUEUE,
 		concurrency: 1,
-		delay: 1000
+		delay: 1000,
+		account: TEST_OWNER
 	};
 
 	mod_cmdutil.configure({
@@ -66,11 +70,16 @@ main()
 	});
 	mod_cmdutil.exitOnEpipe();
 
-	var parser = new mod_getopt.BasicParser('b:(bucket)c:(concurrency)' +
-		'd:(delay)', process.argv);
+	var parser = new mod_getopt.BasicParser('a:(account)b:(bucket)' +
+		'c:(concurrency)d:(delay)z(zero-byte)s(storage)',
+		process.argv);
 
 	while ((option = parser.getopt()) !== undefined) {
 		switch (option.option) {
+			case 'a':
+				mod_assertplus.uuid(option.optarg);
+				config.account = option.optarg;
+				break;
 			case 'b':
 				config.bucket = option.optarg;
 				break;
@@ -81,6 +90,12 @@ main()
 			case 'd':
 				config.delay = mod_jsprim.parseInteger(
 						option.optarg);
+				break;
+			case 's':
+				config.storage = true;
+				break;
+			case 'z':
+				config.zero_byte = true;
 				break;
 			default:
 				mod_assertplus.equal('?', option.option);
@@ -98,14 +113,21 @@ main()
 			var client = ctx.ctx_moray_clients[shard];
 
 			function upload_record() {
-				/*
-				 * Randomly choose between zero byte and
-				 * non-zero byte objects.
-				 */
-				var sharks = random() === 0 ? TEST_SHARKS :
-					TEST_NO_SHARKS;
+				var sharks;
+
+				if ((config.storage && config.zero_byte) ||
+				    !(config.storage || config.zero_byte)) {
+					sharks = random() === 0 ? TEST_SHARKS :
+						TEST_NO_SHARKS;
+
+				} else if (config.storage) {
+					sharks = TEST_SHARKS;
+				} else {
+					sharks = TEST_NO_SHARKS;
+				}
+
 				create_record(ctx, client, config.bucket,
-					TEST_OWNER, mod_uuidv4(), sharks,
+					config.account, mod_uuidv4(), sharks,
 					function (err) {
 					setTimeout(upload_record,
 						config.delay);
