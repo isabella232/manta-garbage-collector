@@ -32,7 +32,7 @@
 			},
 			{
 				"bucket": "manta_delete_log",
-				"concurrency": 0
+				"concurrency": 1
 			}
 		]
 	},
@@ -44,15 +44,15 @@
 	"params": {
 		"mako": {
 			"instr_upload_batch_size": 100,
-			"instr_upload_flush_delay": 120000,
+			"instr_upload_flush_delay": 5000,
 			"instr_upload_path_prefix": "/poseidon/stor/manta_gc/mako"
 		},
 		"moray": {
-			"record_read_batch_size": 50,
+			"record_read_batch_size": 10,
 			"record_read_wait_interval": 5000,
 			"record_read_sort_attr": "_mtime",
 			"record_read_sort_order": "ASC",
-			"record_delete_batch_size": 50,
+			"record_delete_batch_size": 10,
 			"record_delete_delay": 5000
 		}
 	},
