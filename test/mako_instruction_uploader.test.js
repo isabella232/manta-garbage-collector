@@ -25,21 +25,21 @@ var TEST_OWNER_TWO = mod_uuidv4();
 var TEST_INSTRUCTIONS = {
 	'1.stor.orbit.example.com': [
 		{
-			transformed: [TEST_OWNER_ONE, mod_uuidv4()],
+			line: [TEST_OWNER_ONE, mod_uuidv4()],
 			key: mod_path.join(TEST_OWNER_ONE, mod_uuidv4())
 		},
 		{
-			transformed: [TEST_OWNER_TWO, mod_uuidv4()],
+			line: [TEST_OWNER_TWO, mod_uuidv4()],
 			key: mod_path.join(TEST_OWNER_ONE, mod_uuidv4())
 		}
 	],
 	'2.stor.orbit.example.com': [
 		{
-			transformed: [TEST_OWNER_ONE, mod_uuidv4()],
+			line: [TEST_OWNER_ONE, mod_uuidv4()],
 			key: mod_path.join(TEST_OWNER_TWO, mod_uuidv4())
 		},
 		{
-			transformed: [TEST_OWNER_TWO, mod_uuidv4()],
+			line: [TEST_OWNER_TWO, mod_uuidv4()],
 			key: mod_path.join(TEST_OWNER_TWO, mod_uuidv4())
 		}
 	]
@@ -92,8 +92,8 @@ main()
 				inputs: Object.keys(TEST_INSTRUCTIONS),
 				func: function emit(storage_id, done) {
 					uploader.emit('instruction', {
-						manta_storage_id: storage_id,
-						instrs: TEST_INSTRUCTIONS[storage_id]
+						storage_id: storage_id,
+						lines: TEST_INSTRUCTIONS[storage_id]
 					});
 
 					done();
@@ -204,7 +204,7 @@ main()
 				 */
 				function search_object_data(chunks, cb) {
 					function search(chunk, instr) {
-						var substr = instr.transformed.join('\t');
+						var substr = instr.line.join('\t');
 						var key = instr.key;
 
 						if (chunk.indexOf(substr) !== -1) {

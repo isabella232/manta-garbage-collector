@@ -158,15 +158,15 @@ run_delete_record_transformer_test(num_records, test_done)
 				mod_assertplus.ok(!received_zero_byte_obj, 'received mako-backed' +
 					'object instructions after zero byte object key');
 				mod_assertplus.object(instr, 'instr');
-				mod_assertplus.string(instr.manta_storage_id,
-					'instr.manta_storage_id');
-				mod_assertplus.array(instr.instrs, 'instr.instrs');
+				mod_assertplus.string(instr.storage_id,
+					'instr.storage_id');
+				mod_assertplus.array(instr.lines, 'instr.lines');
 
-				var storage_id = instr.manta_storage_id;
-				var instrs = instr.instrs;
+				var storage_id = instr.storage_id;
+				var lines = instr.lines;
 				var batch_size = ctx.ctx_mako_cfg.instr_upload_batch_size
 
-				mod_assertplus.equal(instrs.length, num_records, 'unexpected ' +
+				mod_assertplus.equal(lines.length, num_records, 'unexpected ' +
 					'mako instruction count');
 
 				storage_ids_received.push(storage_id);
@@ -174,7 +174,7 @@ run_delete_record_transformer_test(num_records, test_done)
 					instrs_received[storage_id] = [];
 				}
 				instrs_received[storage_id] = instrs_received[storage_id].concat(
-					instrs);
+					lines);
 			});
 
 			/*
@@ -194,7 +194,6 @@ run_delete_record_transformer_test(num_records, test_done)
 					'instruction');
 				listeners.moray_listener.removeAllListeners(
 					'cleanup');
-				ctx.ctx_log.debug(storage_ids_received);
 				mod_assertplus.equal(TEST_OBJECT_SHARKS.length,
 					storage_ids_received.length, 'shark number ' +
 					'mismatch');
@@ -222,7 +221,7 @@ run_delete_record_transformer_test(num_records, test_done)
 
 					for (var j = 0; j < instrs_received[storage_id].length;
 						j++) {
-						check_instr_fmt(instrs_received[storage_id][j].transformed);
+						check_instr_fmt(instrs_received[storage_id][j].line);
 					}
 				}
 				next(null, transformer, listeners, ctx, shard);
