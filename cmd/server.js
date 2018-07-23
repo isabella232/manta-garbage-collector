@@ -207,7 +207,7 @@ main()
 
 	var log = ctx.ctx_log = mod_bunyan.createLogger({
 		name: 'garbage-collector',
-		level: process.env.LOG_LEVEL || mod_bunyan.DEBUG,
+		level: process.env.LOG_LEVEL || mod_bunyan.INFO,
 		serializers: mod_bunyan.stdSerializers
 	});
 
@@ -218,6 +218,11 @@ main()
 		 */
 		load_config,
 
+		/*
+		 * Set all global context fields. These are fields that hang
+		 * directly off of the ctx object, and not any of it's
+		 * sub-objects.
+		 */
 		set_global_ctx_fields,
 
 		/*
