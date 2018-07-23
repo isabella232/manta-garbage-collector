@@ -9,6 +9,7 @@
  */
 
 
+var mod_assertplus = require('assert-plus');
 var mod_bunyan = require('bunyan');
 var mod_fs = require('fs');
 var mod_jsprim = require('jsprim');
@@ -107,6 +108,17 @@ load_config(ctx, done)
 
 
 function
+set_global_ctx_fields(ctx, done)
+{
+	mod_assertplus.object(ctx.ctx_cfg, 'ctx.ctx_cfg');
+
+	ctx.ctx_total_cache_entries = 0;
+
+	done();
+}
+
+
+function
 setup_manta_client(ctx, done)
 {
 	var overrides = {
@@ -144,6 +156,11 @@ setup_metrics(ctx, done)
 	/*
 	 * Application layer metrics
 	 */
+
+	metrics_manager.collector.gauge({
+		name: 'cache_entries',
+		help: 'total number of cache entries'
+	});
 
 	metrics_manager.collector.histogram({
 		name: 'delete_records_read',
@@ -200,6 +217,8 @@ main()
 		 * information for creating the clients below.
 		 */
 		load_config,
+
+		set_global_ctx_fields,
 
 		/*
 		 * Create metrics manager and install application level

@@ -115,6 +115,7 @@ create_mock_context(done)
 		if (err) {
 			console.log(err, 'unable to created mock context');
 		}
+		ctx.ctx_total_cache_entries = 0;
 		done(err, ctx);
 	});
 }
