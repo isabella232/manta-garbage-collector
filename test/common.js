@@ -75,45 +75,38 @@ create_mock_context(done)
 			ctx.ctx_moray_cfgs = {};
 			ctx.ctx_moray_clients = {};
 
-			mod_vasync.forEachPipeline({
-				inputs: cfg.shards,
-				func: function create_client(cfg, cb) {
-					var shard = cfg.srvDomain || cfg.host;
-					cfg.log = ctx.ctx_log;
-					var client = mod_moray.createClient(cfg);
+			var interval = ctx.ctx_cfg.shards.interval;
+			var domain_suffix = ctx.ctx_cfg.shards.domain_suffix;
 
-					client.once('connect', function () {
-						client.removeAllListeners('error');
-						ctx.ctx_moray_clients[shard] = client;
-						ctx.ctx_moray_cfgs[shard] = mod_jsprim.deepCopy(
-							ctx.ctx_cfg.params.moray);
-						ctx.ctx_moray_cfgs[shard].buckets = [
-							{
-								bucket: 'manta_fastdelete_queue',
-								concurrency: 1,
-								record_read_offset: 0
-							},
-							{
-								bucket: 'manta_delete_log',
-								concurrency: 1,
-								record_read_offset: 0
-							}
-						];
-						cb();
-					});
+			var barrier = mod_vasync.barrier();
 
-					client.once('error', function (err) {
-						client.removeAllListeners('connect');
-						cb(err);
-					});
-				}
-			}, function (err) {
-				if (err) {
-					ctx.ctx_log.error('unable to create moray client "%s"',
-						err.message);
-					next(err);
-					return;
-				}
+			for (var i = interval[0]; i <= interval[1]; i++) {
+				var shard = [i, domain_suffix].join('.');
+
+				var moray_cfg = mod_jsprim.mergeObjects(ctx.ctx_cfg.moray,
+					{ log: ctx.ctx_log, srvDomain: shard });
+
+				var client = mod_moray.createClient(moray_cfg);
+				var num = i;
+				barrier.start('create_client_' + num);
+
+				client.once('connect', function () {
+					ctx.ctx_moray_clients[shard] = client;
+					ctx.ctx_moray_cfgs[shard] = mod_jsprim.deepCopy(
+						ctx.ctx_cfg.params.moray);
+					ctx.ctx_moray_cfgs[shard].buckets =
+						ctx.ctx_cfg.shards.buckets;
+
+					barrier.done('create_client_' + num);
+				});
+
+				client.once('error', function (err) {
+					mod_assert.ok(false, 'error setting up test' +
+						'context');
+				});
+			}
+
+			barrier.once('drain', function () {
 				next(null, cfg);
 			});
 		},

@@ -13,16 +13,25 @@
 		"connectTimeout": 1000,
 		"rejectUnauthorized": false
 	},
-	"shards": [
-		{
-			"srvDomain": "2.moray.orbit.example.com",
+	"moray": {
+		"options": {
 			"cueballOptions": {
 				"resolvers": [
 					"nameservice.orbit.example.com"
 				]
 			}
 		}
-	],
+	},
+	"shards": {
+		"domain_suffix": "moray.orbit.example.com",
+		"interval": [2,2],
+		"buckets": [
+			{
+				"bucket": "manta_fastdelete_queue",
+				"concurrency": 1
+			}
+		]
+	},
 	"creators": [
 		{
 			"uuid": "edfb68bf-c9bd-c024-ed9a-f871d212d314"

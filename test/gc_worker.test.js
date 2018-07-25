@@ -54,7 +54,7 @@ var TEST_INSTRUCTIONS = (function generate_test_instructions() {
 })();
 
 
-(function
+function
 do_gc_worker_basic_test(test_done)
 {
 	mod_vasync.waterfall([
@@ -139,4 +139,112 @@ do_gc_worker_basic_test(test_done)
 		}
 		process.exit(0);
 	});
-})();
+}
+
+
+function
+do_gc_worker_control_test(test_done)
+{
+	mod_vasync.waterfall([
+		function create_context(next) {
+			lib_testcommon.create_mock_context(function (err, ctx) {
+				ctx.ctx_cfg.creators = [
+					{
+						uuid: TEST_OWNER
+					}
+				];
+				next(err, ctx);
+			});
+		},
+		function create_gc_worker(ctx, next) {
+			var shard = Object.keys(ctx.ctx_moray_clients)[0];
+			worker = lib_testcommon.create_gc_worker(ctx, shard,
+				lib_testcommon.MANTA_FASTDELETE_QUEUE,
+				ctx.ctx_log);
+			worker.once('running', function () {
+				next(null, ctx, worker, shard)
+			});
+		},
+		function pause_gc_worker(ctx, worker, shard, next) {
+			var timer = setTimeout(function () {
+				mod_assertplus.ok(false, 'did not receive ' +
+					'pause event from GC worker');
+			}, SHORT_DELAY);
+
+			worker.once('paused', function () {
+				clearTimeout(timer);
+				next(null, ctx, worker, shard);
+			});
+
+			worker.pause();
+		},
+		function check_actors_paused(ctx, worker, shard, next) {
+			worker.gcw_pipeline.forEach(function (actor) {
+				mod_assertplus.ok(actor.isInState('paused'),
+					'actor in non-paused state');
+			});
+			next(null, ctx, worker, shard);
+		},
+		function resume_gc_worker(ctx, worker, shard, next) {
+			var timer = setTimeout(function () {
+				mod_assertplus.ok(false, 'did not receive ' +
+					'running event after resuming worker');
+			}, SHORT_DELAY);
+
+			worker.once('running', function () {
+				clearTimeout(timer);
+				next(null, ctx, worker, shard);
+			});
+
+			worker.resume();
+		},
+		function check_actors_running(ctx, worker, shard, next) {
+			worker.gcw_pipeline.forEach(function (actor) {
+				mod_assertplus.ok(actor.isInState('running'),
+					'actor in non-running state');
+			});
+			next(null, ctx, worker, shard);
+		},
+		function shutdown_gc_workers(ctx, worker, shard, next) {
+			var timer = setTimeout(function () {
+				mod_assertplus.ok(false, 'did not receive' +
+					'worker shutdown event');
+			}, SHORT_DELAY);
+
+			worker.once('shutdown', function () {
+				clearTimeout(timer);
+				next(null, ctx, worker, shard);
+			});
+
+			worker.shutdown();
+		},
+		function check_actors_shutdown(ctx, worker, shard, next) {
+			worker.gcw_pipeline.forEach(function (actor) {
+				mod_assertplus.ok(actor.isInState('shutdown'),
+					'actor in non-shutdown state');
+			});
+
+			next(null, ctx, worker, shard);
+		}
+	], function (err) {
+		if (err) {
+			process.exit(1);
+		}
+		test_done();
+	});
+}
+
+
+mod_vasync.pipeline({ funcs: [
+	function (_, next) {
+		do_gc_worker_control_test(next);
+	},
+	function (_, next) {
+		do_gc_worker_basic_test(next)
+	}
+]}, function (err) {
+	if (err) {
+		process.exit(1);
+	}
+	process.exit(0);
+});

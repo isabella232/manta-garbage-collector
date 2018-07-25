@@ -91,7 +91,6 @@ do_moray_cleaner_test(num_records, test_done)
 			var client = ctx.ctx_moray_clients[shard];
 			function check_for_delete_record(key, cb) {
 				client.getObject(MANTA_FASTDELETE_QUEUE, key, function (err, obj) {
-					console.log(mod_util.inspect(obj));
 					mod_assertplus.ok(err, 'moray cleaner did not remove ' +
 						'object');
 					cb();
@@ -156,7 +155,7 @@ do_moray_cleaner_error_test(test_done)
 			cleaner.emit('cleanup', TEST_RECORD_KEYS);
 			setTimeout(function () {
 				next(null, ctx, shard, client, cleaner);
-			}, 10000);
+			}, TEST_DELAY);
 		},
 		function check_records_still_exist(ctx, shard, client, cleaner, next) {
 			function get_delete_record(key, cb) {
@@ -228,7 +227,6 @@ do_moray_cleaner_error_test(test_done)
 function
 do_moray_cleaner_pause_resume_test(test_done)
 {
-
 	mod_vasync.waterfall([
 		function setup_context(next) {
 			lib_testcommon.create_mock_context(function (err, ctx) {
@@ -338,7 +336,6 @@ do_moray_cleaner_pause_resume_test(test_done)
 }
 
 mod_vasync.pipeline({funcs: [
-	/*
 	function (_, next) {
 		do_moray_cleaner_test(TEST_RECORDS.length, next);
 	},
@@ -347,7 +344,7 @@ mod_vasync.pipeline({funcs: [
 	},
 	function (_, next) {
 		do_moray_cleaner_error_test(next);
-	},*/
+	},
 	function (_, next) {
 		do_moray_cleaner_pause_resume_test(next);
 	}
