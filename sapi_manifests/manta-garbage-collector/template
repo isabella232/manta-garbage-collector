@@ -28,11 +28,11 @@
 		"buckets": [
 			{
 				"bucket": "manta_delete_log",
-				"concurrency": 1
+				"concurrency": 0
 			},
 			{
 				"bucket": "manta_fastdelete_queue",
-				"concurrency": 0
+				"concurrency": 1
 			}
 		]
 	},
@@ -43,18 +43,17 @@
 	],
 	"params": {
 		"mako": {
-			"instr_upload_batch_size": {{GC_INSTR_UPLOAD_BATCH_SIZE}},
-			"instr_upload_flush_delay": {{GC_INSTR_UPLOAD_FLUSH_DELAY}},
-			"instr_upload_path_prefix": "{{GC_INSTR_UPLOAD_PATH_PREFIX}}"
+			"instr_upload_batch_size": 256,
+			"instr_upload_flush_delay": 60000,
+			"instr_upload_path_prefix": "/poseidon/stor/manta_gc/mako"
 		},
 		"moray": {
-			"concurrency": {{GC_MORAY_CONCURRENCY}},
-			"record_read_batch_size": {{GC_RECORD_READ_BATCH_SIZE}},
-			"record_read_wait_interval": {{GC_RECORD_READ_WAIT_INTERVAL}},
-			"record_read_sort_attr": "{{GC_RECORD_READ_SORT_ATTR}}",
-			"record_read_sort_order": "{{GC_RECORD_READ_SORT_ORDER}}",
-			"record_delete_batch_size": {{GC_RECORD_READ_BATCH_SIZE}},
-			"record_delete_delay": {{GC_RECORD_DELETE_DELAY}}
+			"record_read_batch_size": 128
+			"record_read_wait_interval": 1000,
+			"record_read_sort_attr": "_mtime",
+			"record_read_sort_order": "ASC",
+			"record_delete_batch_size": 128,
+			"record_delete_delay": 30000
 		}
 	},
 	"address": "0.0.0.0",
