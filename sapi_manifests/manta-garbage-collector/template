@@ -1,7 +1,7 @@
 {
 	"manta": {
 		"url": "{{MANTA_URL}}",
-		"user": "{{ADMIN_USERNAME}}"
+		"user": "{{ADMIN_USERNAME}}",
 		"sign": {
 			"key": "/root/.ssh/id_rsa",
 			"keyId": "{{ADMIN_KEY_ID}}"
@@ -38,7 +38,7 @@
 	},
 	"creators": [ {{#ACCOUNTS_SNAPLINKS_DISABLED}}
 		{
-			"uuid": {{uuid}}
+			"uuid": "{{uuid}}"
 		}{{^last}},{{/last}}{{/ACCOUNTS_SNAPLINKS_DISABLED}}
 	],
 	"params": {
@@ -48,7 +48,7 @@
 			"instr_upload_path_prefix": "/poseidon/stor/manta_gc/mako"
 		},
 		"moray": {
-			"record_read_batch_size": 128
+			"record_read_batch_size": 128,
 			"record_read_wait_interval": 1000,
 			"record_read_sort_attr": "_mtime",
 			"record_read_sort_order": "ASC",
@@ -59,7 +59,7 @@
 	"address": "0.0.0.0",
 	"port": 2020,
 	"capacity": 10000,
-	"instance_uuid": "{{auto.ZONENAME}}",
+	"instance": "{{auto.ZONENAME}}",
 	"server_uuid": "{{auto.SERVER_UUID}}",
 	"service_name": "{{SERVICE_NAME}}",
 	"datacenter": "{{DATACENTER}}"
