@@ -49,7 +49,7 @@
 		},
 		"moray": {
 			"record_read_batch_size": 128,
-			"record_read_wait_interval": 8000,
+			"record_read_wait_interval": 5000,
 			"record_read_sort_attr": "_mtime",
 			"record_read_sort_order": "ASC",
 			"record_delete_batch_size": 64,

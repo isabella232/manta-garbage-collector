@@ -115,7 +115,9 @@ do_gc_worker_basic_test(test_done)
 						setTimeout(check_removed, SHORT_DELAY);
 						return;
 					}
-					next(null, ctx, worker, shard);
+					setTimeout(function () {
+						next(null, ctx, worker, shard);
+					}, DELAY);
 				});
 			}
 
