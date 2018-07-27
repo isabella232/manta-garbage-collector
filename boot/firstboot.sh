@@ -72,7 +72,7 @@ w
 EDSCRIPT
 
 #
-# Import the reshard SMF service.  The manifest file creates the service
+# Import the garbage-collector SMF service.  The manifest file creates the service
 # enabled by default.
 #
 if ! svccfg import "/opt/smartdc/$NAME/smf/manifests/garbage-collector.xml"; then

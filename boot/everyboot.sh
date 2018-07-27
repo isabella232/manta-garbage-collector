@@ -10,7 +10,7 @@
 #
 
 #
-# Runs on every boot of a newly reprovisioned "reshard" zone.
+# Runs on every boot of a newly reprovisioned "garbage-collector" zone.
 # (Installed as "configure.sh" to be executed by the "user-script")
 #
 
