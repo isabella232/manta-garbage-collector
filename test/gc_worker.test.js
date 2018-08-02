@@ -25,8 +25,8 @@ var lib_testcommon = require('./common');
 var TEST_OWNER = mod_uuidv4();
 
 var NUM_TEST_OBJECTS = 10;
-var DELAY = 45000;
-var SHORT_DELAY = 5000;
+var DELAY = 50000;
+var SHORT_DELAY = 10000;
 
 var TEST_OBJECTIDS = (function generate_test_objectids() {
 	var objectids = [];

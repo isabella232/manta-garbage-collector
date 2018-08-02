@@ -17,6 +17,7 @@ var mod_manta = require('manta');
 var mod_moray = require('moray');
 var mod_path = require('path');
 var mod_restify = require('restify');
+var mod_sdc = require('sdc-clients');
 var mod_vasync = require('vasync');
 var mod_verror = require('verror');
 
@@ -25,9 +26,11 @@ var mod_schema = require('../lib/schema');
 
 var lib_common = require('../lib/common');
 var lib_http_server = require('../lib/http_server');
+var lib_triton_access = require('../lib/triton_access');
 
 var createMetricsManager = require('triton-metrics').createMetricsManager;
 var VE = mod_verror.VError;
+
 
 function
 retry(func, ctx, done, nsecs)
@@ -113,6 +116,71 @@ set_global_ctx_fields(ctx, done)
 	mod_assertplus.object(ctx.ctx_cfg, 'ctx.ctx_cfg');
 
 	ctx.ctx_total_cache_entries = 0;
+
+	done();
+}
+
+
+function
+setup_sapi_client(ctx, done)
+{
+	ctx.ctx_sapi = new mod_sdc.SAPI({
+		url: ctx.ctx_cfg.sapi_url,
+		log: ctx.ctx_log.child({
+			component: 'SAPI'
+		}),
+		version: '*',
+		agent: false
+	});
+
+	ctx.ctx_log.debug('Created SAPI client.');
+
+	done();
+}
+
+
+function
+load_manta_application(ctx, done)
+{
+	lib_triton_access.get_sapi_application(ctx.ctx_log, ctx.ctx_sapi,
+		'manta', true, function (err, app) {
+		if (err) {
+			done(err);
+		}
+
+		ctx.ctx_manta_app = app;
+		ctx.ctx_log.debug('Loaded manta application.');
+
+		done();
+	});
+}
+
+
+function
+load_index_shard_range(ctx, done)
+{
+	var index_shards = ctx.ctx_manta_app.metadata['INDEX_MORAY_SHARDS'];
+	mod_assertplus.array(index_shards, 'index_shards');
+
+	if (index_shards.length === 0) {
+		done(new VE('Manta application has no index shards.'));
+		return;
+	}
+
+	ctx.ctx_cfg.index_shard_lo = parseInt(
+			index_shards[0].host.charAt(0), 10);
+
+	index_shards.forEach(function (shard) {
+		if (shard.last) {
+			ctx.ctx_cfg.index_shard_hi = parseInt(
+				shard.host.charAt(0), 10);
+		}
+	});
+
+	ctx.ctx_log.info({
+		lo: ctx.ctx_cfg.index_shard_lo,
+		hi: ctx.ctx_cfg.index_shard_hi
+	}, 'Discovered index shard range');
 
 	done();
 }
@@ -230,6 +298,22 @@ main()
 		 * collectors.
 		 */
 		setup_metrics,
+
+		/*
+		 * Create a SAPI sdc-client.
+		 */
+		setup_sapi_client,
+
+		/*
+		 * Load 'manta' application object.
+		 */
+		load_manta_application,
+
+		/*
+		 * We only allow gc to process records on index shards. These
+		 * are the only shards that have a Manta table.
+		 */
+		load_index_shard_range,
 
 		/*
 		 * Create one manta client.
