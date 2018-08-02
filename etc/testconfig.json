@@ -54,6 +54,8 @@
 			"record_delete_delay": 5000
 		}
 	},
+	"index_shard_lo": 1,
+	"index_shard_hi": 2,
 	"address": "0.0.0.0",
 	"port": 2020,
 	"capacity": 10000,

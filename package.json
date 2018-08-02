@@ -22,6 +22,7 @@
     "moray-filter": "1.0.0",
     "restify": "4.3.4",
     "restify-clients": "2.3.0",
+    "sdc-clients": "11.3.1",
     "triton-metrics": "0.2.0",
     "uuid": "3.2.1",
     "vasync": "^2.1.0",
