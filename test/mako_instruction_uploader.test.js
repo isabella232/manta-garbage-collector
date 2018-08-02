@@ -18,7 +18,7 @@ var mod_uuidv4 = require('uuid/v4');
 var lib_testcommon = require('./common');
 
 
-var DELAY = 10000;
+var DELAY = 30000;
 var TEST_OWNER_ONE = mod_uuidv4();
 var TEST_OWNER_TWO = mod_uuidv4();
 
@@ -259,13 +259,17 @@ main()
 				ctx.ctx_log.debug({
 					expected: TEST_EXPECTED_CLEANUP_KEYS
 				}, 'expected instructions');
-				mod_assertplus.equal(Object.keys(instrs_found).length,
-					TEST_EXPECTED_CLEANUP_KEYS.length, 'found more ' +
-					'uploaded instructions that emitted cleanup keys');
-				TEST_EXPECTED_CLEANUP_KEYS.forEach(function (expected_key) {
-					mod_assertplus.ok(instrs_found.hasOwnProperty(expected_key),
-						'did not find instruction for expected key');
+
+				var keys_found = Object.keys(instrs_found);
+
+				TEST_EXPECTED_CLEANUP_KEYS.forEach(function (key) {
+					var matched = keys_found.filter(function (_key) {
+						return (key === _key);
+					});
+					mod_assertplus.ok(matched.length > 0, 'did ' +
+						'not find instruction for expected key');
 				});
+
 				next();
 			});
 		}

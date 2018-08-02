@@ -21,7 +21,13 @@ var lib_testcommon = require('./common');
 var TEST_OWNER = mod_uuidv4();
 var TEST_OBJECTID = mod_uuidv4();
 var TEST_ZERO_BYTE_OBJECTID = mod_uuidv4();
-var DELAY = 5000;
+
+/*
+ * If you are changing this delay, realize that some tests in this file will
+ * depend on the value of the instr_upload_flush_delay tunable. The `DELAY`
+ * parameter should be set to a value greater than the default flush delay.
+ */
+var DELAY = 15000;
 
 var NUM_TEST_RECORDS = 5;
 
@@ -130,6 +136,7 @@ run_delete_record_transformer_test(num_records, test_done)
 					return;
 				}
 				var shard = Object.keys(ctx.ctx_moray_clients)[0];
+				ctx.ctx_mako_cfg.instr_upload_batch_size = NUM_TEST_RECORDS;
 				next(null, ctx, shard);
 			});
 		},
@@ -150,11 +157,19 @@ run_delete_record_transformer_test(num_records, test_done)
 			var instrs_received = {};
 
 			listeners.moray_listener.on('cleanup', function (key) {
+				ctx.ctx_log.debug({
+					instr: mod_util.inspect(key)
+				}, 'Received cleanup request.');
+
 				mod_assertplus.ok(false, 'received moray cleaner event' +
 					'for mako-backed object');
 			});
 
 			listeners.mako_listener.on('instruction', function (instr) {
+				ctx.ctx_log.debug({
+					instr: mod_util.inspect(instr)
+				}, 'Received instruction event.');
+
 				mod_assertplus.ok(!received_zero_byte_obj, 'received mako-backed' +
 					'object instructions after zero byte object key');
 				mod_assertplus.object(instr, 'instr');
@@ -164,7 +179,6 @@ run_delete_record_transformer_test(num_records, test_done)
 
 				var storage_id = instr.storage_id;
 				var lines = instr.lines;
-				var batch_size = ctx.ctx_mako_cfg.instr_upload_batch_size
 
 				mod_assertplus.equal(lines.length, num_records, 'unexpected ' +
 					'mako instruction count');
