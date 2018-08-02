@@ -158,22 +158,22 @@ setup_metrics(ctx, done)
 	 */
 
 	metrics_manager.collector.gauge({
-		name: 'cache_entries',
+		name: 'gc_cache_entries',
 		help: 'total number of cache entries'
 	});
 
 	metrics_manager.collector.histogram({
-		name: 'delete_records_read',
+		name: 'gc_delete_records_read',
 		help: 'number of records read per rpc'
 	});
 
 	metrics_manager.collector.histogram({
-		name: 'delete_records_cleaned',
+		name: 'gc_delete_records_cleaned',
 		help: 'number of records removed per rpc'
 	});
 
 	metrics_manager.collector.histogram({
-		name: 'mako_instrs_uploaded',
+		name: 'gc_mako_instrs_uploaded',
 		help: 'number of instructions uploaded per manta put'
 	});
 

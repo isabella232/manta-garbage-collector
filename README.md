@@ -23,12 +23,12 @@ corresponding backing files are removed from the appropriate Mako zones.
 The garbage collector exposes a number of application-level metrics, in addition
 to node-fast metrics for the two RPCs it uses: `findObjects`, and `deleteMany`.
 
-| name                    | type      | help                                |
-|:-----------------------:|:---------:|:-----------------------------------:|
-| cache_entries           | gauge     | total number of cache entries       |
-| delete_records_read     | histogram | records read per `findObjects`      |
-| delete_records_cleaned  | histogram | records cleaned per `deleteMany`    |
-| mako_instrs_uploaded    | histogram | instructions uploaded per Manta PUT |
+| name                      | type      | help                                |
+|:-------------------------:|:---------:|:-----------------------------------:|
+| gc_cache_entries          | gauge     | total number of cache entries       |
+| gc_delete_records_read    | histogram | records read per `findObjects`      |
+| gc_delete_records_cleaned | histogram | records cleaned per `deleteMany`    |
+| gc_mako_instrs_uploaded   | histogram | instructions uploaded per Manta PUT |
 
 
 # HTTP Management Interface
