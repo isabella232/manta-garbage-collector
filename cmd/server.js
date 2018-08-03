@@ -111,6 +111,21 @@ load_config(ctx, done)
 
 
 function
+setup_log(ctx, done)
+{
+	var bunyan_cfg = ctx.ctx_cfg.bunyan;
+	mod_assertplus.object(bunyan_cfg, 'bunyan_cfg');
+
+	if (bunyan_cfg.level) {
+		mod_assertplus.string(bunyan_cfg.level, 'bunyan_cfg.level');
+		ctx.ctx_log.level(bunyan_cfg.level);
+	}
+
+	done();
+}
+
+
+function
 set_global_ctx_fields(ctx, done)
 {
 	mod_assertplus.object(ctx.ctx_cfg, 'ctx.ctx_cfg');
@@ -285,6 +300,13 @@ main()
 		 * information for creating the clients below.
 		 */
 		load_config,
+
+		/*
+		 * Pull in log-related configuration. For now, this just sets
+		 * the log-level according to what may or may not be in the
+		 * config.
+		 */
+		setup_log,
 
 		/*
 		 * Set all global context fields. These are fields that hang
