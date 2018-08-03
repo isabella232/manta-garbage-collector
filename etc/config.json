@@ -1,4 +1,7 @@
 {
+	"bunyan": {
+		"level": "debug"
+	},
 	"manta": {
 		"url": "https://manta.orbit.example.com",
 		"user": "poseidon",

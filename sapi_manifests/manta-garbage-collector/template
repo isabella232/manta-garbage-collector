@@ -1,4 +1,7 @@
 {
+	"bunyan": {
+		"level": "info"
+	},
 	"manta": {
 		"url": "{{MANTA_URL}}",
 		"user": "{{ADMIN_USERNAME}}",
