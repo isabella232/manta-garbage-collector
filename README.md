@@ -14,9 +14,10 @@ This repository is part of the Joyent Manta project.  For contribution
 guidelines, issues, and general documentation, visit the main
 [Manta](http://github.com/joyent/manta) project page.
 
-This is the garbage collection system for Manta. It comprises a service for
-processing metadata records pointing to deleted objects and ensuring that the
-corresponding backing files are removed from the appropriate Mako zones.
+This is the garbage collection system for Manta. It comprises of a
+service for processing metadata records pointing to deleted objects
+and then ensuring the corresponding backing files are removed from the
+appropriate Mako zones.
 
 # Metrics
 
@@ -50,9 +51,10 @@ Response:
 }
 ```
 
-Endpoints listed under `/workers` implement worker control. Supported actions
-include listing, pausing, and resuming the workers. Newly created workers start
-in the running phase, even if other workers are paused.
+Endpoints listed under `/workers` implement worker control. Supported
+actions include **listing**, **pausing**, and **resuming** the
+workers. Newly created workers start in the running phase, even if
+other workers are paused.
 
 ```
 Request:
@@ -139,7 +141,7 @@ Response:
 instruction object.
 * `instr_upload_flush_delay`: number of milliseconds between periodic cached
   instruction uploads. Used to prevent cache entries from waiting around too
-long if there aren't sufficiently many delete records in the bucket we're
+long if there aren't sufficient enough delete records in the bucket we're
 reading from to reach the batch size.
 * `instr_upload_path_prefix`: The Manta path to which the garbage collector will
 upload Mako GC instruction objects. If the value of this tunable is `$PATH`,
@@ -149,7 +151,7 @@ set this to `/poseidon/stor/manta_gc/mako`, which is where instruction objects
 are uploaded by the offline GC process.
 
 The following request allows an operator to modify any of the tunables returned
-in by the previous endpoint.
+by the previous endpoint.
 ```
 POST /mako
 Content-Type: application/json
@@ -253,7 +255,7 @@ Failure:
 }
 ```
 
-The `/shards` endpoint, describe below should be used for two purposes:
+The `/shards` endpoint, described below should be used for two purposes:
 1. To modify the configuration of all shards. This is equivalent to applying the
 changes included in the JSON body to all shards the garbage collector is
 processing via the `/shards/:shard` endpoint. Changes applied in this manner
@@ -406,8 +408,9 @@ records whose `value.creator` field doesn't match the `uuid` field of some
 object in this array will be ignored. This field will be initialized with the
 SAPI value `ACCOUNTS_SNAPLINKS_DISABLED`, introduced
 [here](https://github.com/joyent/manta-muskie/commit/760857dbf5d30f5734b4ac21e097628824bb6569).
-* `params`: A JSON object with two principal sub-objects describing how records
-should be read from Moray shards, and how Mako instruction objects should be uploaded to Manta.
+* `params`: A JSON object with two principal sub-objects describing
+how records should be read from Moray shards, and how Mako instruction
+objects should be uploaded to Manta.
 * `address`/`port`: The address and port on which to start the HTTP management
 interface described above.
 * `capacity`: The total cache capacity (readable and configurable via the
