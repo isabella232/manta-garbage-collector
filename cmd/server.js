@@ -260,6 +260,11 @@ setup_metrics(ctx, done)
 		help: 'number of instructions uploaded per manta put'
 	});
 
+	metrics_manager.collector.histogram({
+		name: 'gc_bytes_marked_for_delete',
+		help: 'number of bytes marked for delete'
+	});
+
 	ctx.ctx_metrics_manager = metrics_manager;
 	ctx.ctx_metrics_manager.listen(done);
 }
