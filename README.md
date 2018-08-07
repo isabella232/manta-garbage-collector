@@ -18,18 +18,49 @@ This is the garbage collection system for Manta. It comprises a service for
 processing metadata records pointing to deleted objects and ensuring that the
 corresponding backing files are removed from the appropriate Mako zones.
 
+# Running the Server
+
+The entry point for the server lives in `cmd/server.js`, which is symlinked to
+`bin/server`. First, build the component with `make`, and then run it from the
+root of the repository with `$ LOG_LEVEL=<level> bin/server`.
+
+# Running Tests
+
+The garbage-collector uses [catest](https://github.com/joyent/catest) for auto
+tests. Each major component has a corresponding test script in the `test/`
+directory. To run all the tests with the most verbose logging run:
+```
+$ LOG_LEVEL=debug make test
+```
+from the root of the repository.
+
+To run a specific test, edit the Makefile variable `CATEST_FILES` to be a
+space-separated list of test files that should be run on each `make test`. Each
+`*.test.js` is a self-contained test that exercises multiple use-cases of that
+component.
+
+Running the auto tests will require a Manta deployment with at a Muskie that has
+picked up the change introduced in
+[this](https://github.com/joyent/node-libmanta/commit/2ab2c0c7596ac003e2169b634924784b8f6a268a)
+commit. Some tests may fail if the `manta_fastdelete_queue`s in your deployment
+have a very large number of entries which are not otherwise being processed.
+
+# Node Version
+
+The garbage collector targets and has been tested with node-4.8.7.
+
 # Metrics
 
 The garbage collector exposes a number of application-level metrics, in addition
 to node-fast metrics for the two RPCs it uses: `findObjects`, and `deleteMany`.
 
-| name                      | type      | help                                |
-|:-------------------------:|:---------:|:-----------------------------------:|
-| gc_cache_entries          | gauge     | total number of cache entries       |
-| gc_delete_records_read    | histogram | records read per `findObjects`      |
-| gc_delete_records_cleaned | histogram | records cleaned per `deleteMany`    |
-| gc_mako_instrs_uploaded   | histogram | instructions uploaded per Manta PUT |
-
+| name                       | type      | help                                |
+|:---------------------------|:----------|:------------------------------------|
+| gc_cache_entries           | gauge     | total number of cache entries       |
+| gc_delete_records_read     | histogram | records read per `findObjects`      |
+| gc_delete_records_cleaned  | histogram | records cleaned per `deleteMany`    |
+| gc_mako_instrs_uploaded    | histogram | instructions uploaded per Manta PUT |
+| gc_bytes_marked_for_delete | histogram | how much storage space can be reclaimed after a round of `mako_gc.sh` on all sharks |
 
 # HTTP Management Interface
 
