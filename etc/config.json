@@ -21,7 +21,9 @@
 			"cueballOptions": {
 				"resolvers": [
 					"nameservice.orbit.example.com"
-				]
+				],
+				"target": 3,
+				"maximum": 3
 			}
 		}
 	},
@@ -31,7 +33,7 @@
 		"buckets": [
 			{
 				"bucket": "manta_fastdelete_queue",
-				"concurrency": 1
+				"concurrency": 8
 			},
 			{
 				"bucket": "manta_delete_log",
@@ -46,16 +48,16 @@
 	],
 	"params": {
 		"mako": {
-			"instr_upload_batch_size": 128,
+			"instr_upload_batch_size": 512,
 			"instr_upload_flush_delay": 60000,
 			"instr_upload_path_prefix": "/poseidon/stor/manta_gc/mako"
 		},
 		"moray": {
-			"record_read_batch_size": 128,
-			"record_read_wait_interval": 5000,
+			"record_read_batch_size": 512,
+			"record_read_wait_interval": 0,
 			"record_read_sort_attr": "_mtime",
 			"record_read_sort_order": "ASC",
-			"record_delete_batch_size": 64,
+			"record_delete_batch_size": 512,
 			"record_delete_delay": 1000
 		}
 	},
