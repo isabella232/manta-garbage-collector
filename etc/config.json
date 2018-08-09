@@ -29,7 +29,7 @@
 	},
 	"shards": {
 		"domain_suffix": "moray.orbit.example.com",
-		"interval": [2, 2],
+		"interval": [0, 0],
 		"buckets": [
 			{
 				"bucket": "manta_fastdelete_queue",
