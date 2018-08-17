@@ -26,21 +26,34 @@ var TEST_INSTRUCTIONS = {
 	'1.stor.orbit.example.com': [
 		{
 			line: [TEST_OWNER_ONE, mod_uuidv4()],
-			key: mod_path.join(TEST_OWNER_ONE, mod_uuidv4())
+			key: mod_path.join(TEST_OWNER_ONE, mod_uuidv4()),
+			cleaned_state: {
+				cleaned: false
+			}
 		},
 		{
 			line: [TEST_OWNER_TWO, mod_uuidv4()],
-			key: mod_path.join(TEST_OWNER_ONE, mod_uuidv4())
+			key: mod_path.join(TEST_OWNER_ONE, mod_uuidv4()),
+			cleaned_state: {
+				cleaned: false
+			}
+
 		}
 	],
 	'2.stor.orbit.example.com': [
 		{
 			line: [TEST_OWNER_ONE, mod_uuidv4()],
-			key: mod_path.join(TEST_OWNER_TWO, mod_uuidv4())
+			key: mod_path.join(TEST_OWNER_TWO, mod_uuidv4()),
+			cleaned_state: {
+				cleaned: false
+			}
 		},
 		{
 			line: [TEST_OWNER_TWO, mod_uuidv4()],
-			key: mod_path.join(TEST_OWNER_TWO, mod_uuidv4())
+			key: mod_path.join(TEST_OWNER_TWO, mod_uuidv4()),
+			cleaned_state: {
+				cleaned: false
+			}
 		}
 	]
 };
