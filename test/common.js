@@ -96,6 +96,9 @@ create_mock_context(done)
 						ctx.ctx_cfg.params.moray);
 					ctx.ctx_moray_cfgs[shard].buckets =
 						ctx.ctx_cfg.shards.buckets;
+					ctx.ctx_moray_cfgs[shard].buckets.forEach(function (cfg) {
+						cfg.record_read_offset = 0;
+					});
 
 					barrier.done('create_client_' + num);
 				});
