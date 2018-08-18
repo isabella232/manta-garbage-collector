@@ -21,9 +21,7 @@
 			"cueballOptions": {
 				"resolvers": [
 					"nameservice.{{{DOMAIN_NAME}}}"
-				],
-				"target": 3,
-				"maximum": 3
+				]
 			}
 		}
 	},

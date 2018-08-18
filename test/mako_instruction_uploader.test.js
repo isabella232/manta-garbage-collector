@@ -76,7 +76,6 @@ var TEST_EXPECTED_CLEANUP_KEYS = (function () {
 (function
 main()
 {
-
 	mod_vasync.waterfall([
 		function create_context(next) {
 			lib_testcommon.create_mock_context(next);
