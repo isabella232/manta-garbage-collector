@@ -109,6 +109,8 @@ JS_FILES =			$(shell find cmd -name '*.js') \
 				$(shell find lib -name '*.js') \
 				$(shell find tools -name '*.js')
 
+BASH_FILES =			$(shell find tools -name "assign_shards_to_collectors.sh")
+
 JSL_FILES_NODE = 		$(JS_FILES)
 
 JSSTYLE_FILES = 		$(JS_FILES)
