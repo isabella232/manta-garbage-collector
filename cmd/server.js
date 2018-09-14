@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (c) 2018, Joyent, Inc.
+ * Copyright (c) 2019, Joyent, Inc.
  */
 
 
@@ -61,7 +61,7 @@ load_config(ctx, done)
 			return;
 
 		}
-		var out;
+		var out, uses_old_config = false;
 		try {
 			out = JSON.parse(data.toString('utf8'));
 		} catch (e) {
@@ -73,26 +73,32 @@ load_config(ctx, done)
 		ctx.ctx_log.info('loaded configuration file "%s"',
 			ctx.ctx_cfgfile);
 
-		var schema_err = mod_schema.validate_shards_cfg(
+		var schema_err = mod_schema.validate_creators_cfg(
+			out.allowed_creators || out.creators);
+		if (schema_err) {
+			done(new VE(schema_err, 'malformed creators config'));
+			return;
+		}
+
+		schema_err = mod_schema.validate_shards_cfg(
 			out.shards);
 		if (schema_err) {
-			done(new VE(schema_err, 'malformed shards ' +
-				'configuration'));
-			return;
+			schema_err = mod_schema.validate_shards_old_cfg(
+			    out.shards);
+			if (schema_err) {
+				done(new VE(schema_err, 'malformed shards ' +
+					'configuration'));
+				return;
+			}
+			uses_old_config = true;
+			ctx.ctx_log.warn('assuming old configuration schema');
 		}
 
 		schema_err = mod_schema.validate_buckets_cfg(
 			out.buckets);
 		if (schema_err) {
 			done(new VE(schema_err, 'malformed buckets ' +
-				'configuration'));
-			return;
-		}
-
-		schema_err = mod_schema.validate_creators_cfg(
-			out.creators);
-		if (schema_err) {
-			done(new VE(schema_err, 'malformed creators config'));
+			    'configuration'));
 			return;
 		}
 
@@ -100,14 +106,39 @@ load_config(ctx, done)
 			out.tunables);
 		if (schema_err) {
 			done(new VE(schema_err, 'malformed tunables ' +
-				'configuration'));
+			    'configuration'));
 			return;
 		}
 
+		ctx.ctx_old_config = uses_old_config;
 		ctx.ctx_cfg = out;
 
 		setImmediate(done);
 	});
+}
+
+
+function
+translate_config(ctx, done)
+{
+	if (!ctx.ctx_old_config) {
+		done();
+		return;
+	}
+	var shards = ctx.ctx_cfg.shards;
+	var assigned_shards = [];
+
+	if (!(shards[0] === 0 && shards[1] === 0)) {
+		for (var i = shards[0]; i <= shards[1]; i++) {
+			assigned_shards.push({
+			    host: [i, ctx.ctx_cfg.shard_service_name || 'moray',
+				ctx.ctx_cfg.domain].join('.')
+			});
+		}
+	}
+
+	ctx.ctx_cfg.shards = assigned_shards;
+	done();
 }
 
 
@@ -184,7 +215,6 @@ setup_manta_client(ctx, done)
 	ctx.ctx_manta_client = mod_manta.createClient(manta_cfg);
 	ctx.ctx_log.debug('created manta client');
 
-	ctx.ctx_mako_cfg = mod_jsprim.deepCopy(ctx.ctx_cfg.params.mako);
 	setImmediate(done);
 }
 
@@ -276,6 +306,12 @@ main()
 		 * information for creating the clients below.
 		 */
 		load_config,
+
+		/*
+		 * If the collector received an outdated configuration,
+		 * translate ctx.ctx_cfg appropriately.
+		 */
+		translate_config,
 
 		/*
 		 * Pull in log-related configuration. For now, this just sets

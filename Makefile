@@ -5,7 +5,7 @@
 #
 
 #
-# Copyright (c) 2018, Joyent, Inc.
+# Copyright (c) 2019, Joyent, Inc.
 #
 
 #
@@ -118,7 +118,6 @@ JSSTYLE_FILES = 		$(JS_FILES)
 JSL_CONF_NODE = 		tools/jsl.node.conf
 
 JSON_FILES = 			package.json
-
 
 .PHONY: test
 test: | $(CATEST)

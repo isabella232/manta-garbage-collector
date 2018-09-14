@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (c) 2018, Joyent, Inc.
+ * Copyright (c) 2019, Joyent, Inc.
  */
 
 var mod_assertplus = require('assert-plus');
@@ -59,8 +59,8 @@ do_gc_worker_basic_test(test_done)
 {
 	mod_vasync.waterfall([
 		function create_context(next) {
-			lib_testcommon.create_mock_context(function (err, ctx) {
-				ctx.ctx_cfg.creators = [
+			lib_testcommon.create_mock_context({}, function (err, ctx) {
+				ctx.ctx_cfg.allowed_creators = [
 					{
 						uuid: TEST_OWNER
 					}
@@ -126,7 +126,7 @@ do_gc_worker_basic_test(test_done)
 		function check_instrs_uploaded(ctx, worker, shard, next) {
 			var client = ctx.ctx_manta_client;
 			lib_testcommon.find_instrs_in_manta(client, TEST_INSTRUCTIONS,
-				ctx.ctx_mako_cfg.instr_upload_path_prefix,
+				ctx.ctx_cfg.tunables.instr_upload_path_prefix,
 				function (err) {
 				if (err) {
 					ctx.ctx_log.error(err, 'failed to find ' +
@@ -149,8 +149,8 @@ do_gc_worker_control_test(test_done)
 {
 	mod_vasync.waterfall([
 		function create_context(next) {
-			lib_testcommon.create_mock_context(function (err, ctx) {
-				ctx.ctx_cfg.creators = [
+			lib_testcommon.create_mock_context({}, function (err, ctx) {
+				ctx.ctx_cfg.allowed_creators = [
 					{
 						uuid: TEST_OWNER
 					}
@@ -238,9 +238,11 @@ do_gc_worker_control_test(test_done)
 
 
 mod_vasync.pipeline({ funcs: [
+	/*
 	function (_, next) {
 		do_gc_worker_control_test(next);
 	},
+	*/
 	function (_, next) {
 		do_gc_worker_basic_test(next)
 	}

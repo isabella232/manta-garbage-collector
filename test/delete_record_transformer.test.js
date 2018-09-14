@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (c) 2018, Joyent, Inc.
+ * Copyright (c) 2019, Joyent, Inc.
  */
 
 var mod_assertplus = require('assert-plus');
@@ -129,14 +129,15 @@ run_delete_record_transformer_test(num_records, test_done)
 		'most NUM_TEST_RECORDS');
 	mod_vasync.waterfall([
 		function setup_context(next) {
-			lib_testcommon.create_mock_context(function (err, ctx) {
+			lib_testcommon.create_mock_context({}, function (err, ctx) {
 				if (err) {
 					console.log('error creating context');
 					next(err);
 					return;
 				}
 				var shard = Object.keys(ctx.ctx_moray_clients)[0];
-				ctx.ctx_mako_cfg.instr_upload_batch_size = NUM_TEST_RECORDS;
+				ctx.ctx_cfg.tunables.instr_upload_batch_size =
+				    NUM_TEST_RECORDS;
 				next(null, ctx, shard);
 			});
 		},
@@ -234,7 +235,7 @@ run_delete_record_transformer_test(num_records, test_done)
 					}
 
 					for (var j = 0; j < instrs_received[storage_id].length;
-						j++) {
+					    j++) {
 						check_instr_fmt(instrs_received[storage_id][j].line);
 					}
 				}
@@ -243,9 +244,22 @@ run_delete_record_transformer_test(num_records, test_done)
 
 		}, function (transformer, listeners, ctx, shard, next) {
 			var received_keys = {};
+
 			listeners.mako_listener.on('instruction', function (instr) {
 				mod_assertplus.ok(false, 'received mako instruction for zero ' +
 					'byte object');
+			});
+
+			listeners.moray_listener.on('cleanup', function (to_cleanup) {
+				if (TEST_ZERO_BYTE_OBJECT_KEYS.slice(0,
+				    num_records).indexOf(to_cleanup.key) !== -1) {
+					received_keys[to_cleanup.key] = true;
+				}
+			});
+
+			TEST_ZERO_BYTE_OBJECT_RECORDS.slice(0, num_records).forEach(
+				function (record) {
+				transformer.emit('record', record);
 			});
 
 			setTimeout(function () {
@@ -255,19 +269,6 @@ run_delete_record_transformer_test(num_records, test_done)
 				listeners.moray_listener.removeAllListeners('cleanup');
 				next();
 			}, DELAY);
-
-			listeners.moray_listener.on('cleanup', function (key) {
-				mod_assertplus.ok(TEST_ZERO_BYTE_OBJECT_KEYS.slice(0,
-					num_records).indexOf(key) !== -1, 'received unexpected ' +
-					'zero by object key');
-				received_keys[key] = true;
-			});
-
-			TEST_ZERO_BYTE_OBJECT_RECORDS.slice(0, num_records).forEach(
-				function (record) {
-				transformer.emit('record', record);
-			});
-
 		}
 	], function (err) {
 		if (err) {

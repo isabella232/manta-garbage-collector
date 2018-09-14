@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (c) 2018, Joyent, Inc.
+ * Copyright (c) 2019, Joyent, Inc.
  */
 
 var mod_assertplus = require('assert-plus');
@@ -55,9 +55,13 @@ load_test_config(done)
 
 
 function
-create_mock_context(done)
+create_mock_context(opts, done)
 {
 	var ctx = {};
+
+	mod_assertplus.object(opts, 'opts');
+	mod_assertplus.optionalBool(opts.skip_manta_client, 'opts.skip_manta_client');
+	mod_assertplus.optionalBool(opts.skip_moray_clients, 'opts.skip_moray_clients');
 
 	ctx.ctx_log = mod_bunyan.createLogger({
 		name: 'Test',
@@ -68,54 +72,50 @@ create_mock_context(done)
 		function load_config(next) {
 			load_test_config(function (err, cfg) {
 				ctx.ctx_cfg = cfg;
-				next(err, cfg);
+				next(err);
 			});
 		},
-		function create_moray_clients(cfg, next) {
-			ctx.ctx_moray_cfgs = {};
+		function create_moray_clients(next) {
 			ctx.ctx_moray_clients = {};
 
-			var interval = ctx.ctx_cfg.shards.interval;
-			var domain_suffix = ctx.ctx_cfg.shards.domain_suffix;
+			if (opts.skip_moray_clients) {
+				next();
+				return;
+			}
 
 			var barrier = mod_vasync.barrier();
 
-			for (var i = interval[0]; i <= interval[1]; i++) {
-				var shard = [i, domain_suffix].join('.');
+			var shards = ctx.ctx_cfg.shards;
 
-				var moray_cfg = mod_jsprim.mergeObjects(ctx.ctx_cfg.moray,
-					{ log: ctx.ctx_log, srvDomain: shard });
+			mod_vasync.forEachPipeline({
+				inputs: shards,
+				func: function (shard, cb) {
+					var moray_cfg = mod_jsprim.mergeObjects(ctx.ctx_cfg.moray,
+						{ log: ctx.ctx_log, srvDomain: shard.host });
 
-				var client = mod_moray.createClient(moray_cfg);
-				var num = i;
-				barrier.start('create_client_' + num);
+					var client = mod_moray.createClient(moray_cfg);
 
-				client.once('connect', function () {
-					ctx.ctx_moray_clients[shard] = client;
-					ctx.ctx_moray_cfgs[shard] = mod_jsprim.deepCopy(
-						ctx.ctx_cfg.params.moray);
-					ctx.ctx_moray_cfgs[shard].buckets =
-						ctx.ctx_cfg.shards.buckets;
-					ctx.ctx_moray_cfgs[shard].buckets.forEach(function (cfg) {
-						cfg.record_read_offset = 0;
+					client.once('connect', function () {
+						ctx.ctx_moray_clients[shard.host] = client;
+						cb();
 					});
 
-					barrier.done('create_client_' + num);
-				});
-
-				client.once('error', function (err) {
-					mod_assert.ok(false, 'error setting up test' +
-						'context');
-				});
-			}
-
-			barrier.once('drain', function () {
-				next(null, cfg);
+					client.once('error', function (err) {
+						mod_assert.ok(false, 'error setting up test' +
+							'context');
+					});
+				}
+			}, function (err) {
+				next(err);
 			});
 		},
-		function create_manta_client(cfg, next) {
-			ctx.ctx_manta_client = mod_manta.createClient(cfg.manta);
-			ctx.ctx_mako_cfg = mod_jsprim.deepCopy(ctx.ctx_cfg.params.mako);
+		function create_manta_client(next) {
+			if (opts.skip_manta_client) {
+				next();
+				return;
+			}
+			ctx.ctx_manta_client = mod_manta.createClient(
+			    ctx.ctx_cfg.manta);
 			next();
 		}
 	], function (err) {
@@ -259,6 +259,11 @@ find_instrs_in_manta(client, instrs, path_prefix, find_done)
 		instr_paths = [];
 
 		client.ls(path, {}, function (err, stream) {
+			if (err) {
+				find_done(new VE(err, 'error listing ' +
+				    'path in Manta: ' + path));
+				return;
+			}
 			stream.on('object', function (obj) {
 				instr_paths.push(mod_path.join(path,
 					obj.name));
