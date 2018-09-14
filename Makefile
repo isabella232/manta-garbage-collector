@@ -118,7 +118,8 @@ JSSTYLE_FILES = 		$(JS_FILES)
 JSL_CONF_NODE = 		tools/jsl.node.conf
 
 JSON_FILES = 			package.json
-
+#				etc/config.json \
+#				etc/testconfig.json
 
 .PHONY: test
 test: | $(CATEST)

@@ -25,14 +25,12 @@
 			}
 		}
 	},
-	"shards": [
-		{{#GC_ASSIGNED_SHARDS}}
+	"shards": [{{#GC_ASSIGNED_SHARDS}}
 		{
 			"host": "{{host}}"
 		}{{^last}},{{/last}}{{/GC_ASSIGNED_SHARDS}}
 	],
-	"buckets": [
-		{{#GC_ASSIGNED_BUCKETS}}
+	"buckets": [{{#GC_ASSIGNED_BUCKETS}}
 		{
 			"name": "{{name}}"
 		}{{^last}},{{/last}}{{/GC_ASSIGNED_BUCKETS}}
@@ -43,8 +41,7 @@
 		{{/GC_ASSIGNED_BUCKETS}}
 	],
 	"concurrency": {{GC_CONCURRENCY}},
-	"allowed_creators": [
-		{{#ACCOUNTS_SNAPLINKS_DISABLED}}
+	"allowed_creators": [{{#ACCOUNTS_SNAPLINKS_DISABLED}}
 		{
 			"uuid": "{{uuid}}"
 		}{{^last}},{{/last}}{{/ACCOUNTS_SNAPLINKS_DISABLED}}
@@ -52,15 +49,15 @@
 	"tunables": {
 		"instr_upload_batch_size": {{GC_INSTR_UPLOAD_BATCH_SIZE}},
 		"instr_upload_flush_delay": {{GC_INSTR_UPLOAD_FLUSH_DELAY}},
-		"instr_upload_path_prefix": "{{GC_INSTR_UPLOAD_PATH_PREFIX}}"
+		"instr_upload_path_prefix": "{{GC_INSTR_UPLOAD_PATH_PREFIX}}",
 		"record_read_batch_size": {{GC_RECORD_READ_BATCH_SIZE}},
 		"record_read_wait_interval": {{GC_RECORD_READ_WAIT_INTERVAL}},
 		"record_read_sort_attr": "{{GC_RECORD_READ_SORT_ATTR}}",
 		"record_read_sort_order": "{{GC_RECORD_READ_SORT_ORDER}}",
 		"record_delete_batch_size": {{GC_RECORD_DELETE_BATCH_SIZE}},
 		"record_delete_delay": {{GC_RECORD_DELETE_DELAY}},
-		"capacity": {{GC_CACHE_CAPACITY}},
-	}
+		"capacity": {{GC_CACHE_CAPACITY}}
+	},
 	"address": "0.0.0.0",
 	"port": 2020,
 	"sapi_url": "{{{SAPI_URL}}}",

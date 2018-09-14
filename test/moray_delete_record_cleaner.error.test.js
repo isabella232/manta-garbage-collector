@@ -51,7 +51,7 @@ do_moray_cleaner_error_test(test_done)
 {
 	mod_vasync.waterfall([
 		function setup_context(next) {
-			lib_testcommon.create_mock_context(function (err, ctx) {
+			lib_testcommon.create_mock_context({}, function (err, ctx) {
 				if (err) {
 					console.log('error creating context');
 					next(err);
@@ -59,7 +59,7 @@ do_moray_cleaner_error_test(test_done)
 				}
 
 				var shard = Object.keys(ctx.ctx_moray_clients)[0];
-				ctx.ctx_moray_cfgs[shard].record_delete_batch_size =
+				ctx.ctx_cfg.tunables.record_delete_batch_size =
 					TEST_RECORDS.length;
 				next(null, ctx, shard);
 			});
