@@ -81,6 +81,14 @@ load_config(ctx, done)
 			return;
 		}
 
+		schema_err = mod_schema.validate_buckets_cfg(
+			out.buckets);
+		if (schema_err) {
+			done(new VE(schema_err, 'malformed buckets ' +
+				'configuration'));
+			return;
+		}
+
 		schema_err = mod_schema.validate_creators_cfg(
 			out.creators);
 		if (schema_err) {
@@ -88,18 +96,10 @@ load_config(ctx, done)
 			return;
 		}
 
-		schema_err = mod_schema.validate_moray_cfg(
-			out.params.moray);
+		schema_err = mod_schema.validate_tunables_cfg(
+			out.tunables);
 		if (schema_err) {
-			done(new VE(schema_err, 'malformed moray ' +
-				'configuration'));
-			return;
-		}
-
-		schema_err = mod_schema.validate_mako_cfg(
-			out.params.mako);
-		if (schema_err) {
-			done(new VE(schema_err, 'malformed mako ' +
+			done(new VE(schema_err, 'malformed tunables ' +
 				'configuration'));
 			return;
 		}
@@ -167,112 +167,6 @@ load_manta_application(ctx, done)
 		ctx.ctx_manta_app = app;
 		ctx.ctx_log.debug('Loaded manta application.');
 
-		done();
-	});
-}
-
-
-function
-load_index_shard_range(ctx, done)
-{
-	var index_shards = ctx.ctx_manta_app.metadata['INDEX_MORAY_SHARDS'];
-	mod_assertplus.array(index_shards, 'index_shards');
-	mod_assertplus.ok(ctx.ctx_cfg.index_shard_lo === undefined,
-		'unexpected context configuration: \'index_shard_lo\'');
-	mod_assertplus.ok(ctx.ctx_cfg.index_shard_hi === undefined,
-		'unexpected context configuration: \'index_shard_hi\'');
-
-	if (index_shards.length === 0) {
-		done(new VE('Manta application has no index shards.'));
-		return;
-	}
-
-	/*
-	 * Today, garbage-collector instances are assigned shards in contiguous
-	 * inclusive ranges like [2,8]. This assignment scheme relies on the
-	 * convention that index shards in production deployments are given
-	 * consecutive numeric shard names: 2.moray.{{DOMAIN}},
-	 * 3.moray.{{DOMAIN}} ... 97.moray.{{DOMAIN}}. In order to ensure that
-	 * the collector doesn't attempt to process records for non-index
-	 * shards, it loads the complete index shard range from the SAPI Manta
-	 * application below.
-	 *
-	 * The list of shards in the SAPI Manta application's INDEX_MORAY_SHARDS
-	 * metadata array are not ordered. It is also not the case that the
-	 * shard whose name is the highest numeric value in the list contains
-	 * the "last" field (the "last" field is syntax required by hogan.js
-	 * template engine).
-	 *
-	 * In order to correctly filter operator requests to GC from shards that
-	 * are not index shards, we retrieve the full range of index shards by
-	 * finding the lowest and highest valued numeric shard names in the
-	 * list. Every time a request to change the range of shards a collector
-	 * should GC from is made, a check is done to ensure the new range is a
-	 * subset of the range of full index shards retrieved below.
-	 *
-	 * There is future work planned to remove the assumption of consecutive
-	 * numeric index shard names from the garbage-collector.
-	 */
-	var shard_url_re = new RegExp('^(\\d+).' +
-		ctx.ctx_cfg.shards.domain_suffix + '$');
-
-	function parse_shard_number_from_url(shard_url, cb) {
-		var results = shard_url_re.exec(shard_url);
-		if (results === null) {
-			cb(new VE('Unexpected shard url \'%s\'. Collector ' +
-				'expects shard names matching \'%s\'.',
-				shard_url, shard_url_re.toString()));
-			return;
-		}
-		/*
-		 * RegExp.exec puts places the single matched group at index
-		 * 1 of the 'result' array.
-		 */
-		var shard_num = parseInt(results[1], 10);
-
-		if (isNaN(shard_num)) {
-			cb(new VE('Unexpected shard url \'%s\', collector ' +
-				'expects consecutive numeric shard names ' +
-				'matching \'%s\'.', shard_url,
-				shard_url_re.toString()));
-			return;
-		}
-
-		cb(null, shard_num);
-	}
-
-	function parse_shard_url_and_update_range(shard, next) {
-		parse_shard_number_from_url(shard.host,
-			function (err, shard_num) {
-			if (err) {
-				next(err);
-				return;
-			}
-			if (ctx.ctx_cfg.index_shard_lo === undefined ||
-			    ctx.ctx_cfg.index_shard_lo > shard_num) {
-				ctx.ctx_cfg.index_shard_lo = shard_num;
-			}
-
-			if (ctx.ctx_cfg.index_shard_hi === undefined ||
-			    ctx.ctx_cfg.index_shard_hi < shard_num) {
-				ctx.ctx_cfg.index_shard_hi = shard_num;
-			}
-			next();
-		});
-	}
-
-	mod_vasync.forEachPipeline({
-		inputs: index_shards,
-		func: parse_shard_url_and_update_range
-	}, function (err) {
-		if (err) {
-			done(err);
-			return;
-		}
-		ctx.ctx_log.info({
-			lo: ctx.ctx_cfg.index_shard_lo,
-			hi: ctx.ctx_cfg.index_shard_hi
-		}, 'Discovered index shard range');
 		done();
 	});
 }
@@ -412,12 +306,6 @@ main()
 		 * Load 'manta' application object.
 		 */
 		load_manta_application,
-
-		/*
-		 * We only allow gc to process records on index shards. These
-		 * are the only shards that have a Manta table.
-		 */
-		load_index_shard_range,
 
 		/*
 		 * Create one manta client.
