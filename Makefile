@@ -119,7 +119,6 @@ JSL_CONF_NODE = 		tools/jsl.node.conf
 
 JSON_FILES = 			package.json
 
-
 .PHONY: test
 test: | $(CATEST)
 	$(CATEST) $(CATEST_FILES)

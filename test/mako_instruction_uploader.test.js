@@ -78,7 +78,7 @@ main()
 {
 	mod_vasync.waterfall([
 		function create_context(next) {
-			lib_testcommon.create_mock_context(next);
+			lib_testcommon.create_mock_context({}, next);
 		},
 		function create_mako_instruction_uploader(ctx, next) {
 			var listener = new mod_events.EventEmitter();
@@ -100,18 +100,6 @@ main()
 				});
 			});
 
-			mod_vasync.forEachParallel({
-				inputs: Object.keys(TEST_INSTRUCTIONS),
-				func: function emit(storage_id, done) {
-					uploader.emit('instruction', {
-						storage_id: storage_id,
-						lines: TEST_INSTRUCTIONS[storage_id]
-					});
-
-					done();
-				}
-			}, function (err) {});
-
 			setTimeout(function () {
 				ctx.ctx_log.debug({
 					received: keys_received
@@ -129,6 +117,13 @@ main()
 				listener.removeAllListeners('cleanup');
 				next(null, ctx, uploader);
 			}, DELAY);
+
+			Object.keys(TEST_INSTRUCTIONS).forEach(function (storage_id) {
+				uploader.emit('instruction', {
+					storage_id: storage_id,
+					lines: TEST_INSTRUCTIONS[storage_id]
+				});
+			});
 		},
 		function find_cleanup_instructions(ctx, uploader, next) {
 			var client = ctx.ctx_manta_client;
@@ -141,7 +136,7 @@ main()
 
 			function find_instr_in_manta(key, done) {
 				var manta_storage_id = key;
-				var prefix = ctx.ctx_mako_cfg.instr_upload_path_prefix;
+				var prefix = ctx.ctx_cfg.tunables.instr_upload_path_prefix;
 				var path = mod_path.join(prefix, manta_storage_id);
 
 				/*

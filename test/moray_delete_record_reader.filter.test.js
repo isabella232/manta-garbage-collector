@@ -47,7 +47,7 @@ do_filter_test(test_done)
 {
 	mod_vasync.waterfall([
 		function setup_context(next) {
-			lib_testcommon.create_mock_context(function (err, ctx) {
+			lib_testcommon.create_mock_context({}, function (err, ctx) {
 				if (err) {
 					console.log('error creating context');
 					next(err);

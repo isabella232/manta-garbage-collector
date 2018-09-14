@@ -90,7 +90,7 @@ load_config(ctx, done)
 		}
 
 		schema_err = mod_schema.validate_creators_cfg(
-			out.creators);
+			out.allowed_creators);
 		if (schema_err) {
 			done(new VE(schema_err, 'malformed creators config'));
 			return;
@@ -184,7 +184,6 @@ setup_manta_client(ctx, done)
 	ctx.ctx_manta_client = mod_manta.createClient(manta_cfg);
 	ctx.ctx_log.debug('created manta client');
 
-	ctx.ctx_mako_cfg = mod_jsprim.deepCopy(ctx.ctx_cfg.params.mako);
 	setImmediate(done);
 }
 
