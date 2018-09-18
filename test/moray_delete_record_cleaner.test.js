@@ -39,7 +39,11 @@ var TEST_RECORDS = (function generate_test_records() {
 })();
 
 var TEST_RECORD_KEYS = TEST_RECORDS.map(function (record) {
-	return record.join('/');
+	return ({
+		key: record.join('/'),
+		size: 0,
+		sharks: []
+	});
 });
 
 /*
@@ -89,8 +93,8 @@ do_moray_cleaner_test(num_records, test_done)
 		},
 		function check_delete_records_cleaned(ctx, shard, next) {
 			var client = ctx.ctx_moray_clients[shard];
-			function check_for_delete_record(key, cb) {
-				client.getObject(MANTA_FASTDELETE_QUEUE, key, function (err, obj) {
+			function check_for_delete_record(record, cb) {
+				client.getObject(MANTA_FASTDELETE_QUEUE, record.key, function (err, obj) {
 					mod_assertplus.ok(err, 'moray cleaner did not remove ' +
 						'object');
 					cb();

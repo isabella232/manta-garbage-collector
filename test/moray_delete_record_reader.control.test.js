@@ -36,7 +36,7 @@ var OBJECTS = (function generate_object_spec() {
 
 	return (objects);
 })();
-var DELAY = 5000;
+var DELAY = 10000;
 var LONG_DELAY = 16000;
 
 var SHARK = '1.stor.orbit.example.com';
@@ -108,11 +108,12 @@ do_pause_resume_test(test_done)
 			}, DELAY);
 		},
 		function resume_reader(ctx, shard, reader, listener, next) {
-			setTimeout(function () {
+			var timer = setTimeout(function () {
 				mod_assertplus.ok(false, 'did not receive running ' +
 					'event after resuming reader');
 			}, DELAY);
 			reader.once('running', function () {
+				clearTimeout(timer);
 				next(null, ctx, shard, reader, listener);
 			});
 			reader.emit('assertResume');
