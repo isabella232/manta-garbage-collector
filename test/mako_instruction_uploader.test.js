@@ -88,15 +88,15 @@ main()
 		},
 		function emit_and_check_for_cleanups(ctx, uploader, listener, next) {
 			var keys_received = {};
-			listener.on('cleanup', function (keys) {
-				mod_assertplus.arrayOfString(keys, 'keys');
-				keys.forEach(function (key) {
-					mod_assertplus.ok(TEST_EXPECTED_CLEANUP_KEYS.indexOf(key)
+			listener.on('cleanup', function (clean_records) {
+				mod_assertplus.arrayOfObject(clean_records, 'clean_records');
+				clean_records.forEach(function (record) {
+					mod_assertplus.ok(TEST_EXPECTED_CLEANUP_KEYS.indexOf(record.key)
 						!== -1, 'received cleanup request for ' +
 						'unexpected key');
-					mod_assertplus.ok(!keys_received.hasOwnProperty(key),
+					mod_assertplus.ok(!keys_received.hasOwnProperty(record),
 						'received the same key twice');
-					keys_received[key] = true;
+					keys_received[record.key] = true;
 				});
 			});
 

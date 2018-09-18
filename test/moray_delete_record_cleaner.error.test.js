@@ -39,7 +39,11 @@ var TEST_RECORDS = (function generate_test_records() {
 })();
 
 var TEST_RECORD_KEYS = TEST_RECORDS.map(function (record) {
-	return record.join('/');
+	return ({
+		key: record.join('/'),
+		size: 0,
+		sharks: []
+	});
 });
 
 function
@@ -88,9 +92,9 @@ do_moray_cleaner_error_test(test_done)
 			}, TEST_DELAY);
 		},
 		function check_records_still_exist(ctx, shard, client, cleaner, next) {
-			function get_delete_record(key, cb) {
+			function get_delete_record(record, cb) {
 				lib_testcommon.get_fake_delete_record(
-					client, key, cb);
+					client, record.key, cb);
 			}
 			mod_vasync.forEachPipeline({
 				inputs: TEST_RECORD_KEYS,
@@ -132,9 +136,9 @@ do_moray_cleaner_error_test(test_done)
 			}, TEST_DELAY);
 		},
 		function check_records_dont_exist(ctx, shard, client, cleaner, next) {
-			function get_delete_record(key, cb) {
+			function get_delete_record(record, cb) {
 				lib_testcommon.get_fake_delete_record(
-					client, key, cb);
+					client, record.key, cb);
 			}
 			mod_vasync.forEachPipeline({
 				inputs: TEST_RECORD_KEYS,
