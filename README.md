@@ -50,16 +50,109 @@ have a very large number of entries which are not otherwise being processed.
 
 The garbage collector targets and has been tested with node-4.8.7.
 
+# Configuration
+
+## Process Level Configuration File Structure
+
+The configuration in `etc/config.json` is an example of how the garbage
+collector is configured. Some chunks of this configuration are described below:
+* `manta`: A JSON object passed to node-manta's `createClient`.
+* `moray`: A JSON object with options passed to node-moray's `createClient`. At
+minimum, this must include a resolver.
+* `shards`: A JSON object describing which shards, and which buckets on each of
+those shards, to process delete records from.
+* `creators`: An array of objects with a single field, `uuid`. Any delete
+records whose `value.creator` field doesn't match the `uuid` field of some
+object in this array will be ignored. This field will be initialized with the
+SAPI value `ACCOUNTS_SNAPLINKS_DISABLED`, introduced
+[here](https://github.com/joyent/manta-muskie/commit/760857dbf5d30f5734b4ac21e097628824bb6569).
+* `params`: A JSON object with two principal sub-objects describing
+how records should be read from Moray shards, and how Mako instruction
+objects should be uploaded to Manta.
+* `address`/`port`: The address and port on which to start the HTTP management
+interface described above.
+* `capacity`: The total cache capacity (readable and configurable via the
+`/cache` endpoint described above). Configuration
+
+The configuration in `etc/config.json` is an example of how the garbage
+collector is configured. Some chunks of this configuration are described below:
+* `manta`: A JSON object passed to node-manta's `createClient`.
+* `moray`: A JSON object with options passed to node-moray's `createClient`. At
+minimum, this must include a resolver.
+* `shards`: A JSON object describing which shards, and which buckets on each of
+those shards, to process delete records from.
+* `creators`: An array of objects with a single field, `uuid`. Any delete
+records whose `value.creator` field doesn't match the `uuid` field of some
+object in this array will be ignored. This field will be initialized with the
+SAPI value `ACCOUNTS_SNAPLINKS_DISABLED`, introduced
+[here](https://github.com/joyent/manta-muskie/commit/760857dbf5d30f5734b4ac21e097628824bb6569).
+* `params`: A JSON object with two principal sub-objects describing
+how records should be read from Moray shards, and how Mako instruction
+objects should be uploaded to Manta.
+* `address`/`port`: The address and port on which to start the HTTP management
+interface described above.
+* `capacity`: The total cache capacity (readable and configurable via the
+`/cache` endpoint described above).
+
+## Operating Garbage-Collectors
+
+Garbage-collectors are configured with SAPI. The default values for the tunables
+vary by deployment size, but the following metadata values are installed in the
+garbage-collector service object on `manta-init`:
+
+### Record Ingest
+
+* `GC_RECORD_READ_BATCH_SIZE` - The number of `manta_fastdelete_queue` records
+   to read per `findObjects`.
+* `GC_RECORD_READ_WAIT_INTERVAL` - The number of milliseconds to wait between
+  `findObjects` on the `manta_fastdelete_queue`.
+* `GC_RECORD_READ_SORT_ATTR` - Which `manta_fastdelete_queue` bucket attribute
+  to use when sorting.
+* `GC_RECORD_READ_SORT_ORDER` - What order to sort records in. This value can be
+  one of `ASC|DESC|asc|desc`.
+
+### Instruction Upload
+
+* `GC_INSTR_UPLOAD_BATCH_SIZE` - The number of delete instructions (lines) to
+  include per instruction object.
+* `GC_INSTR_UPLOAD_FLUSH_DELAY` - The number of milliseconds to wait between
+  attempt to upload an instruction object.
+* `GC_INSTR_UPLOAD_PATH_PREFIX` - The location in which to upload delete
+  instructions. This should always be "/poseidon/stor/manta_gc/mako".
+
+### Record Delete
+
+* `GC_RECORD_DELETE_BATCH_SIZE` - The batch size with which to delete records
+  from the `manta_fastdelete_queue`.
+* `GC_RECORD_DELETE_DELAY` - The number of milliseconds to wait between deletes
+  from the `manta_fastdelete_queue`.
+
+### Concurrency and Memory
+
+* `GC_CACHE_CAPACITY` - A global cap on the nubmer of entities a collector can
+  have cached at once. This is a coarse limit intended to limit the memory
+  consumption of a collector on a system experiencing memory pressure.
+* `GC_MANTA_FASTDELETE_QUEUE_CONCURRENCY` - The number of workers to allocate to
+  reading processing records from the `manta_fastdelete_queue`.
+* `[GC_SHARD_NUM_LO, GC_SHARD_NUM_HI]` - The inclusive numeric range of shards
+  from which the garbage-collector will read records from.
+
+Each of these SAPI values can be overridden in the instance object of a single
+collector. By default, `[GC_SHARD_NUM_LO, GC_SHARD_NUM_HI] = [0,0]`. When
+collectors start up and find this to be the case, they will print an explanatory
+log message and remain idle. Operators should use SAPI tools to set the ranges
+appropriately and restart the garbage-collectors.
+
 # Metrics
 
 The garbage collector exposes a number of application-level metrics, in addition
-to node-fast metrics for the two RPCs it uses: `findObjects`, and `deleteMany`.
+to node-fast metrics for the two RPCs it uses: `findObjects`, and `batch`.
 
 | name                       | type      | help                                |
 |:---------------------------|:----------|:------------------------------------|
 | gc_cache_entries           | gauge     | total number of cache entries       |
 | gc_delete_records_read     | histogram | records read per `findObjects`      |
-| gc_delete_records_cleaned  | histogram | records cleaned per `deleteMany`    |
+| gc_delete_records_cleaned  | histogram | records cleaned per `batch`         |
 | gc_mako_instrs_uploaded    | histogram | instructions uploaded per Manta PUT |
 | gc_bytes_marked_for_delete | histogram | how much storage space can be reclaimed after a round of `mako_gc.sh` on all sharks |
 
@@ -242,9 +335,9 @@ reading records from `manta_fastdelete_queue` and `manta_delete_log`.
 * `record_read_sort_attr`: Which attribute to sort by when processing records.
 * `record_read_sort_ord`: What order to use when sorting records.
 * `record_delete_batch_size`: How many records to delete with a single Moray
-`deleteMany` RPC.
+`batch` RPC.
 * `record_delete_delay`: The threshold amount of time a worker will wait since
-the last successful `deleteMany` RPC before issuing a 'periodic' `deleteMany`.
+the last successful `batch` RPC before issuing a 'periodic' `batch`.
 
 Modify any of the tunables returned by the previous endpoint by passing a JSON
 object describing the new desired values. This will affect the behavior of all
@@ -424,25 +517,3 @@ Response:
 	when: ISO timestamp
 }
 ```
-
-# Configuration
-
-The configuration in `etc/config.json` is an example of how the garbage
-collector is configured. Some chunks of this configuration are described below:
-* `manta`: A JSON object passed to node-manta's `createClient`.
-* `moray`: A JSON object with options passed to node-moray's `createClient`. At
-minimum, this must include a resolver.
-* `shards`: A JSON object describing which shards, and which buckets on each of
-those shards, to process delete records from.
-* `creators`: An array of objects with a single field, `uuid`. Any delete
-records whose `value.creator` field doesn't match the `uuid` field of some
-object in this array will be ignored. This field will be initialized with the
-SAPI value `ACCOUNTS_SNAPLINKS_DISABLED`, introduced
-[here](https://github.com/joyent/manta-muskie/commit/760857dbf5d30f5734b4ac21e097628824bb6569).
-* `params`: A JSON object with two principal sub-objects describing
-how records should be read from Moray shards, and how Mako instruction
-objects should be uploaded to Manta.
-* `address`/`port`: The address and port on which to start the HTTP management
-interface described above.
-* `capacity`: The total cache capacity (readable and configurable via the
-`/cache` endpoint described above).
