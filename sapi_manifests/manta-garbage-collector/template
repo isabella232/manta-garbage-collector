@@ -16,6 +16,11 @@
 		"connectTimeout": 1000,
 		"rejectUnauthorized": {{MANTA_REJECT_UNAUTHORIZED}}
 	},
+	"ufds": {
+		"url": "{{{UFDS_URL}}}",
+		"bindDN": "{{{UFDS_ROOT_DN}}}",
+		"bindPassword": "{{{UFDS_ROOT_PW}}}"
+	},
 	"moray": {
 		"options": {
 			"cueballOptions": {

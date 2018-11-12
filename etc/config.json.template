@@ -16,6 +16,11 @@
         "connectTimeout": 1000,
         "rejectUnauthorized": false
     },
+    "ufds": {
+        "url": "ldaps://ufds.coal-1.example.com",
+        "bindDN": "cn=root",
+        "bindPassword": "secret"
+    },
     "moray": {
         "options": {
             "cueballOptions": {
@@ -39,11 +44,6 @@
         }
     ],
     "concurrency": 1,
-    "allowed_creators": [
-        {
-            "uuid": "2f1c9213-44ca-c7c5-a57b-a9deb14589c4"
-        }
-    ],
     "tunables": {
         "instr_upload_batch_size": 100,
         "instr_upload_flush_delay": 30000,

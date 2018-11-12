@@ -22,6 +22,8 @@ var mod_util = require('util');
 var mod_vasync = require('vasync');
 var mod_verror = require('verror');
 
+var UFDS = require('ufds');
+
 var mod_gc_manager = require('../lib/gc_manager');
 var mod_schema = require('../lib/schema');
 
@@ -89,13 +91,6 @@ load_config(ctx, done)
 			return;
 		}
 
-		schema_err = mod_schema.validate_creators_cfg(
-			out.allowed_creators);
-		if (schema_err) {
-			done(new VE(schema_err, 'malformed creators config'));
-			return;
-		}
-
 		schema_err = mod_schema.validate_tunables_cfg(
 			out.tunables);
 		if (schema_err) {
@@ -150,6 +145,25 @@ setup_sapi_client(ctx, done)
 	});
 
 	ctx.ctx_log.debug('Created SAPI client.');
+
+	done();
+}
+
+
+function
+setup_ufds_client(ctx, done)
+{
+	var ufds_cfg = ctx.ctx_cfg.ufds;
+
+	ufds_cfg = mod_jsprim.mergeObjects(ufds_cfg, {
+	    log: ctx.ctx_log.child({
+	        component: 'UFDS'
+	    })
+	});
+
+	ctx.ctx_ufds = new UFDS(ufds_cfg);
+
+	ctx.ctx_log.debug('Created UFDS client.');
 
 	done();
 }
@@ -300,6 +314,12 @@ main()
 		 * Create a SAPI sdc-client.
 		 */
 		setup_sapi_client,
+
+		/*
+		 * Create a UFDS client to read and refresh the list of
+		 * snaplink-disabled users for.
+		 */
+		setup_ufds_client,
 
 		/*
 		 * Load 'manta' application object.

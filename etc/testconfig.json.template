@@ -16,6 +16,11 @@
         "connectTimeout": 1000,
         "rejectUnauthorized": false
     },
+    "ufds": {
+        "url": "ldaps://ufds.coal-1.example.com",
+        "bindDN": "cn=root",
+        "bindPassword": "secret"
+    },
     "moray": {
         "options": {
             "cueballOptions": {
