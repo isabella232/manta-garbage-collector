@@ -29,10 +29,10 @@
 		{
 			"host": "{{host}}"
 		}{{^last}},{{/last}}{{/GC_ASSIGNED_SHARDS}}
-		{{^GC_ASSIGNED_SHARDS}}
+		{{^GC_ASSIGNED_SHARDS}}{{#GC_SHARD_NUM_LO}}{{#GC_SHARD_NUM_HI}}
 		{{GC_SHARD_NUM_LO}},
 		{{GC_SHARD_NUM_HI}}
-		{{/GC_ASSIGNED_SHARDS}}
+		{{/GC_SHARD_NUM_HI}}{{/GC_SHARD_NUM_LO}}{{/GC_ASSIGNED_SHARDS}}
 	],
 	"buckets": [{{#GC_ASSIGNED_BUCKETS}}
 		{
