@@ -18,7 +18,7 @@
     "posix-getopt": "1.2.0",
     "manta": "5.1.1",
     "mooremachine": "2.2.1",
-    "moray": "^3.3.0",
+    "boray": "https://github.com/joyent/node-boray#master",
     "moray-filter": "1.0.0",
     "restify": "4.3.4",
     "restify-clients": "2.3.0",

@@ -14,7 +14,6 @@ var mod_bunyan = require('bunyan');
 var mod_fs = require('fs');
 var mod_jsprim = require('jsprim');
 var mod_manta = require('manta');
-var mod_moray = require('moray');
 var mod_path = require('path');
 var mod_restify = require('restify');
 var mod_sdc = require('sdc-clients');

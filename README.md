@@ -14,6 +14,38 @@ This repository is part of the Joyent Manta project.  For contribution
 guidelines, issues, and general documentation, visit the main
 [Manta](http://github.com/joyent/manta) project page.
 
+## dev-boray branch
+
+This branch is intended to research the possibility of using this project as the
+garbage collection service for a buckets-based metadata tier.
+
+The changes within are what is required for this project to successfully perform
+that task, but the project as it is will no longer support a directory-based
+metadata tier.  This has been done for demonstration purposes for now, where
+I've found it easier to see the exact delta required to support buckets.  The
+changes are small enough that I believe this project is suitable for
+modification (as opposed to forking).  So long as the garbage collectors can
+branch on the shard identifier (i.e. 2.moray for directories, 2.boray for
+buckets), then I think we could have the same set of garbage collectors that are
+deployed today do the work.
+
+Currently this relies on a buckets shard (boray) being able to return a list of
+objects across all vnodes.  The way I've done this today is via a postgres
+function within the database, which will scan all schemas and return all data in
+their
+[`manta_bucket_deleted_object`](https://github.com/joyent/rfd/blob/master/rfd/0149/README.md#manta_bucket_deleted_object)
+tables, plus the vnode.  RFD 149 defines the vnode being part of the data, but
+this is no longer the case (see
+[MANTA-3896](https://jira.joyent.us/browse/MANTA-3896)).  It should also be
+possible for boray itself to iterate over these vnodes, but for now this is
+working.  See [MANTA-4119](https://jira.joyent.us/browse/MANTA-4119) for some
+examples of the function required to do this.
+
+An important distinction here is that garbage is collected per shard, not per
+bucket.  I think this is OK, but if we wanted to do this per bucket then we
+could possibly move the connection to the metadata tier up a level and talk to
+electric-boray instead.  I have not looked into this.
+
 # Overview
 
 The garbage-collector is an extension added to Manta in [RFD
