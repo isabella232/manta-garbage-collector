@@ -1,7 +1,8 @@
 /node_modules
+/bits
 /tmp
 /cache/
-build
+/build
 /make_stamps
 docs/*.json
 docs/*.html
@@ -12,5 +13,4 @@ core*
 proto/
 man
 node
-*-pkg-*.tar.bz2
-smf/manifests/bapi.xml
+*-pkg-*.tar.gz
