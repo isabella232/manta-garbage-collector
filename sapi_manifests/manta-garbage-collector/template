@@ -51,6 +51,7 @@
 		}{{^last}},{{/last}}{{/ACCOUNTS_SNAPLINKS_DISABLED}}
 	],
 	"tunables": {
+		"instr_upload_min_batch_size": {{GC_INSTR_UPLOAD_MIN_BATCH_SIZE}},
 		"instr_upload_batch_size": {{GC_INSTR_UPLOAD_BATCH_SIZE}},
 		"instr_upload_flush_delay": {{GC_INSTR_UPLOAD_FLUSH_DELAY}},
 		"instr_upload_path_prefix": "{{GC_INSTR_UPLOAD_PATH_PREFIX}}",
