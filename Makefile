@@ -15,7 +15,7 @@
 NAME :=				manta-garbage-collector
 CATEST :=			deps/catest/catest
 
-NODE_PREBUILT_TAG =		gz
+NODE_PREBUILT_TAG =		zone64
 NODE_PREBUILT_VERSION =		v4.8.7
 NODE_PREBUILT_IMAGE =		18b094b0-eb01-11e5-80c1-175dac7ddf02
 
@@ -63,9 +63,7 @@ SAPI_MANIFEST_DIRS =		$(SAPI_MANIFESTS:%=$(PREFIX)/sapi_manifests/%)
 SMF_MANIFESTS =			garbage-collector
 SMF_MANIFESTS_DIR =		$(PREFIX)/smf/manifests
 
-NODE_BITS =			bin/node \
-				lib/libgcc_s.so.1 \
-				lib/libstdc++.so.6
+NODE_BITS =			bin/node
 NODE_DIR =			$(PREFIX)/node
 NODE_MODULE_INSTALL =		$(PREFIX)/node_modules/.ok
 
