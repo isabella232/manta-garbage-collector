@@ -96,6 +96,7 @@ INSTALL_DIRS =			$(addprefix $(PROTO), \
 				$(PREFIX)/cmd \
 				$(PREFIX)/bin \
 				$(PREFIX)/lib \
+				$(PREFIX)/etc \
 				$(SAPI_MANIFEST_DIRS) \
 				)
 
