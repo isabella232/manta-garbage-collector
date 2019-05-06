@@ -174,7 +174,7 @@ accel-gc` attempts to help with these decisions -- see
   (lines) to include per instruction object.  This ensures that instruction
   files can never have less than a pre-configured number of lines.  This is
   important because performance on the mako side will deteriorate with
-  numerous, small instruction files to process.
+  numerous, small instruction files to process. (default: 1)
 * `GC_INSTR_UPLOAD_BATCH_SIZE` - The maximum number of delete instructions
   (lines) to include per instruction object.  Note that there is no guarantee
   that all instruction files will reach this size.
