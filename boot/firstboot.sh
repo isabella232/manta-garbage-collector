@@ -21,6 +21,7 @@ NAME=manta-garbage-collector
 #
 
 SVC_ROOT="/opt/smartdc/$NAME"
+METRICPORTS_SVC='metric-ports-updater'
 
 #
 # Build PATH from this list of directories.  This PATH will be used both in the
@@ -72,11 +73,18 @@ w
 EDSCRIPT
 
 #
+# Import the metric-ports-updater SMF service.
+#
+if ! svccfg import "/opt/smartdc/$NAME/smf/manifests/$METRICPORTS_SVC.xml"; then
+	fatal "could not import $METRICPORTS_SVC SMF service"
+fi
+
+#
 # Import the garbage-collector SMF service.  The manifest file creates the service
 # enabled by default.
 #
 if ! svccfg import "/opt/smartdc/$NAME/smf/manifests/garbage-collector.xml"; then
-	fatal 'could not import SMF service'
+	fatal "could not import $NAME SMF service"
 fi
 
 manta_common_setup_end

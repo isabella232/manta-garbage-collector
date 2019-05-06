@@ -60,8 +60,11 @@ BOOT_DIR =			/opt/smartdc/boot
 SAPI_MANIFESTS =		manta-garbage-collector
 SAPI_MANIFEST_DIRS =		$(SAPI_MANIFESTS:%=$(PREFIX)/sapi_manifests/%)
 
-SMF_MANIFESTS =			garbage-collector
+SMF_MANIFESTS =			garbage-collector metric-ports-updater
+SMF_METHODS = 			metric-ports-updater
+
 SMF_MANIFESTS_DIR =		$(PREFIX)/smf/manifests
+SMF_METHODS_DIR =		$(PREFIX)/smf/methods
 
 NODE_BITS =			bin/node
 NODE_DIR =			$(PREFIX)/node
@@ -72,6 +75,7 @@ INSTALL_FILES =			$(addprefix $(PROTO), \
 				$(SCRIPTS:%=$(SCRIPTS_DIR)/%) \
 				$(TEMPLATES:%=$(TEMPLATES_DIR)/%) \
 				$(SMF_MANIFESTS:%=$(SMF_MANIFESTS_DIR)/%.xml) \
+				$(SMF_METHODS:%=$(SMF_METHODS_DIR)/%.sh) \
 				$(NODE_BITS:%=$(NODE_DIR)/%) \
 				$(NODE_MODULE_INSTALL) \
 				$(COMMANDS:%=$(PREFIX)/cmd/%.js) \
@@ -87,6 +91,7 @@ INSTALL_DIRS =			$(addprefix $(PROTO), \
 				$(SCRIPTS_DIR) \
 				$(TEMPLATES_DIR) \
 				$(SMF_MANIFESTS_DIR) \
+				$(SMF_METHODS_DIR) \
 				$(BOOT_DIR) \
 				$(NODE_DIR)/bin \
 				$(NODE_DIR)/lib \
@@ -188,6 +193,9 @@ $(PROTO)$(PREFIX)/sapi_manifests/%: sapi_manifests/% | $(INSTALL_DIRS)
 	$(INSTALL_FILE)
 
 $(PROTO)$(PREFIX)/smf/manifests/%.xml: smf/manifests/%.xml | $(INSTALL_DIRS)
+	$(INSTALL_FILE)
+
+$(PROTO)$(PREFIX)/smf/methods/%: smf/methods/% | $(INSTALL_DIRS)
 	$(INSTALL_FILE)
 
 
