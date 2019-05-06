@@ -9,7 +9,7 @@
         <dependency name="dep0" grouping="require_all" restart_on="error" type="service" >
             <service_fmri value="svc:/milestone/multi-user:default" />
         </dependency>
-        <exec_method type="method" name="start" exec="/usr/bin/rsync --daemon --no-detach --config=/root/rsyncd/rsyncd.conf --verbose --log-file=/dev/stdout &amp;" timeout_seconds="10" />
+        <exec_method type="method" name="start" exec="/usr/bin/rsync --daemon --no-detach --config=/opt/smartdc/manta-garbage-collector/etc/rsyncd.conf --verbose --log-file=/dev/stdout &amp;" timeout_seconds="10" />
         <exec_method type="method" name="stop" exec=':kill' timeout_seconds="30" />
         <template >
             <common_name >
