@@ -6,7 +6,7 @@
 #
 
 #
-# Copyright (c) 2018, Joyent, Inc.
+# Copyright (c) 2019, Joyent, Inc.
 #
 
 printf '==> firstboot @ %s\n' "$(date -u +%FT%TZ)"
@@ -20,6 +20,7 @@ NAME=manta-garbage-collector
 # (Installed as "setup.sh" to be executed by the "user-script")
 #
 
+SPOOL_DIR="/var/spool/manta_gc"
 SVC_ROOT="/opt/smartdc/$NAME"
 SAPI_CONFIG="$SVC_ROOT/etc/config.json"
 
@@ -72,12 +73,39 @@ export PATH="$PATH"
 w
 EDSCRIPT
 
+
+#
+# Setup the delegated dataset for storing the garbage-collector instruction
+# queue. This way, if we get reprovisioned while instructions are sitting
+# around, they're not lost.
+#
+mkdir -p $SPOOL_DIR
+dataset=zones/$(zonename)/data
+if zfs list | grep $dataset; then
+    mountpoint=$(zfs get -Hp mountpoint $dataset | awk '{print $3}')
+    if [[ $mountpoint != $SPOOL_DIR ]]; then
+        zfs set mountpoint=$SPOOL_DIR $dataset
+        [[ $? -eq 0 ]] || fatal 'failed to set ZFS mountpoint'
+    fi
+else
+    fatal 'must have delegated dataset so we do not lose instructions'
+fi
+
+
 #
 # Import the garbage-collector SMF service.  The manifest file creates the service
 # enabled by default.
 #
 if ! svccfg import "/opt/smartdc/$NAME/smf/manifests/garbage-collector.xml"; then
-	fatal 'could not import SMF service'
+	fatal 'could not import garbage-collector SMF service'
+fi
+
+#
+# Import the rsyncd SMF service.  The manifest file creates the service
+# enabled by default.
+#
+if ! svccfg import "/opt/smartdc/$NAME/smf/manifests/rsyncd.xml"; then
+	fatal 'could not import rsyncd SMF service'
 fi
 
 #

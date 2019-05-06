@@ -5,13 +5,12 @@
  */
 
 /*
- * Copyright (c) 2018, Joyent, Inc.
+ * Copyright (c) 2019, Joyent, Inc.
  */
 
 var mod_assertplus = require('assert-plus');
 var mod_cmdutil = require('cmdutil');
 var mod_jsprim = require('jsprim');
-var mod_manta = require('manta');
 var mod_moray = require('moray');
 var mod_getopt = require('posix-getopt');
 var mod_util = require('util');
