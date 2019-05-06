@@ -13,7 +13,6 @@ var mod_bunyan = require('bunyan');
 var mod_fs = require('fs');
 var mod_jsprim = require('jsprim');
 var mod_path = require('path');
-var mod_manta = require('manta');
 var mod_moray = require('moray');
 var mod_verror = require('verror');
 var mod_vasync = require('vasync');
@@ -109,15 +108,6 @@ create_mock_context(opts, done)
 				next(err);
 			});
 		},
-		function create_manta_client(next) {
-			if (opts.skip_manta_client) {
-				next();
-				return;
-			}
-			ctx.ctx_manta_client = mod_manta.createClient(
-			    ctx.ctx_cfg.manta);
-			next();
-		}
 	], function (err) {
 		if (err) {
 			console.log(err, 'unable to created mock context');

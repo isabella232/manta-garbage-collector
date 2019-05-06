@@ -83,6 +83,7 @@ INSTALL_FILES =			$(addprefix $(PROTO), \
 				$(SAPI_MANIFEST_DIRS:%=%/template) \
 				$(SAPI_MANIFEST_DIRS:%=%/manifest.json) \
 				$(PREFIX)/bin/garbage-collector \
+				$(PREFIX)/etc/rsyncd.conf \
 				)
 
 INSTALL_DIRS =			$(addprefix $(PROTO), \

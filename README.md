@@ -337,7 +337,7 @@ Response:
 {
 	"instr_upload_batch_size": integer,
 	"instr_upload_flush_delay": integer,
-	"instr_upload_path_prefix": string,
+	"instr_write_path_prefix": string,
 	"record_read_batch_size": integer,
 	"record_read_wait_interval": integer (ms),
 	"record_read_sort_attr": "_mtime",
@@ -356,7 +356,7 @@ Content-Type: application/json
 {
 	"instr_upload_batch_size": integer,
 	"instr_upload_flush_delay": integer,
-	"instr_upload_path_prefix": string
+	"instr_write_path_prefix": string
 	"record_read_batch_size": integer,
 	"record_read_wait_interval": integer (ms),
 	"record_read_sort_attr": "_mtime",
