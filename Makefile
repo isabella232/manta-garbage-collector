@@ -58,10 +58,10 @@ TEMPLATES_DIR =			$(PREFIX)/templates
 BOOT_SCRIPTS =			setup.sh configure.sh
 BOOT_DIR =			/opt/smartdc/boot
 
-SAPI_MANIFESTS =		manta-garbage-collector rsyncd
+SAPI_MANIFESTS =		manta-garbage-collector
 SAPI_MANIFEST_DIRS =		$(SAPI_MANIFESTS:%=$(PREFIX)/sapi_manifests/%)
 
-SMF_MANIFESTS_FILES =		garbage-collector
+SMF_MANIFESTS_FILES =		garbage-dir-consumer garbage-uploader
 SMF_MANIFESTS =			$(SMF_MANIFESTS_FILES:%=smf/manifests/%.xml)
 SMF_MANIFESTS_DIR =		$(PREFIX)/smf/manifests
 
@@ -82,7 +82,6 @@ INSTALL_FILES =			$(addprefix $(PROTO), \
 				$(PREFIX)/lib/wrap.sh \
 				$(SAPI_MANIFEST_DIRS:%=%/template) \
 				$(SAPI_MANIFEST_DIRS:%=%/manifest.json) \
-				$(PREFIX)/bin/garbage-collector \
 				$(PREFIX)/etc/rsyncd.conf \
 				)
 
@@ -174,8 +173,8 @@ $(PROTO)$(PREFIX)/cmd/%.js: cmd/%.js | $(INSTALL_DIRS)
 $(PROTO)$(PREFIX)/bin/%:
 	rm -f $@ && ln -s ../lib/wrap.sh $@
 
-$(PROTO)$(PREFIX)/bin/garbage-collector: scripts/garbage-collector.sh
-	$(INSTALL_EXEC)
+$(PROTO)$(PREFIX)/etc/rsyncd.conf: etc/rsyncd.conf
+	$(INSTALL_FILE)
 
 $(PROTO)$(PREFIX)/lib/%.sh: lib/%.sh | $(INSTALL_DIRS)
 	$(INSTALL_EXEC)
