@@ -57,7 +57,7 @@ TEMPLATES_DIR =			$(PREFIX)/templates
 BOOT_SCRIPTS =			setup.sh configure.sh
 BOOT_DIR =			/opt/smartdc/boot
 
-SAPI_MANIFESTS =		manta-garbage-collector
+SAPI_MANIFESTS =		manta-garbage-collector rsyncd
 SAPI_MANIFEST_DIRS =		$(SAPI_MANIFESTS:%=$(PREFIX)/sapi_manifests/%)
 
 SMF_MANIFESTS =			garbage-collector
