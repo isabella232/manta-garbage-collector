@@ -20,7 +20,7 @@ var mod_vasync = require('vasync');
 var VE = mod_verror.VError;
 var MorayDeleteRecordReader = require('../lib/moray_delete_record_reader').MorayDeleteRecordReader;
 var MorayDeleteRecordCleaner = require('../lib/moray_delete_record_cleaner').MorayDeleteRecordCleaner;
-var MakoInstructionUploader = require('../lib/mako_instruction_uploader').MakoInstructionUploader;
+var MakoInstructionWriter = require('../lib/mako_instruction_writer').MakoInstructionWriter;
 var DeleteRecordTransformer = require('../lib/delete_record_transformer').DeleteRecordTransformer;
 
 var GCWorker = require('../lib/gc_worker').GCWorker;
@@ -147,7 +147,7 @@ create_moray_delete_record_cleaner(ctx, shard)
 
 
 function
-create_mako_instruction_uploader(ctx, listener)
+create_mako_instruction_writer(ctx, listener)
 {
 	var opts = {
 		ctx: ctx,
@@ -237,7 +237,7 @@ create_gc_worker(ctx, shard, bucket, log) {
 
 /*
  * Given an object mapping storage ids to arrays identifying individual objects.
- * Verify that mako cleanup instructions have been uploaded for those objects
+ * Verify that mako cleanup instructions have been written for those objects
  * and only appear once in the object data uploaded by this GC worker.
  */
 function

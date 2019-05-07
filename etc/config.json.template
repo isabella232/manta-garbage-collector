@@ -45,8 +45,8 @@
         }
     ],
     "tunables": {
-        "instr_upload_batch_size": 100,
-        "instr_upload_flush_delay": 30000,
+        "instr_write_batch_size": 100,
+        "instr_write_flush_delay": 30000,
         "instr_write_path_prefix": "/var/spool/manta_gc/mako",
         "record_read_batch_size": 50,
         "record_read_wait_interval": 3000,

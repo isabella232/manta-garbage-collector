@@ -371,7 +371,7 @@ easily isolate the instruction that we are looking for:
 ```
 manta-oneach -s garbage-collector "curl -X POST localhost:2020/mako -H 'content-type: application/json' 
 	-d '{
-		\"instr_upload_batch_size\": 1
+		\"instr_write_batch_size\": 1
 	}'"
 SERVICE           ZONE     OUTPUT
 garbage-collector f812ef45 {"ok":true,"when":"2018-07-30T19:41:55.704Z"}
