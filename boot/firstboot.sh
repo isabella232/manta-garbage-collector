@@ -21,6 +21,7 @@ NAME=manta-garbage-collector
 #
 
 SVC_ROOT="/opt/smartdc/$NAME"
+SAPI_CONFIG="$SVC_ROOT/etc/config.json"
 
 #
 # Build PATH from this list of directories.  This PATH will be used both in the
@@ -78,5 +79,19 @@ EDSCRIPT
 if ! svccfg import "/opt/smartdc/$NAME/smf/manifests/garbage-collector.xml"; then
 	fatal 'could not import SMF service'
 fi
+
+#
+# Get the port from the sapi config file, then add 1000 to it to get the
+# metricPort to allow scraping by cmon-agent.
+#
+# Note that the config file is guaranteed to have been written by config-agent
+# at this point, because we've already called manta_common_setup, which calls
+# manta_enable_config_agent, which enables the config-agent service
+# synchronously.
+#
+if [[ ! -f $SAPI_CONFIG ]]; then
+	fatal 'SAPI config not found'
+fi
+mdata-put metricPorts $(expr $(< "$SAPI_CONFIG" json 'port') + 1000)
 
 manta_common_setup_end
