@@ -117,7 +117,7 @@ function upgrade_sapi_config {
     echo "Updating SAPI with:"
     echo "$new_json"
 
-    curl -sS -X PUT -d @- $SAPI_URL/services/$SAPI_SERVICE_UUID <<<$new_json
+    curl -sS -X PUT -H 'Content-Type: application/json' -d @- $SAPI_URL/services/$SAPI_SERVICE_UUID <<<$new_json
     curl_ret=$?
     [[ $curl_ret -eq 0 ]] || fatal "PUT failed for SAPI service, exit code: $curl_ret"
 }
