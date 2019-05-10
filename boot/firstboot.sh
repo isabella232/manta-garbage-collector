@@ -6,7 +6,7 @@
 #
 
 #
-# Copyright (c) 2019, Joyent, Inc.
+# Copyright 2019 Joyent, Inc.
 #
 
 printf '==> firstboot @ %s\n' "$(date -u +%FT%TZ)"
@@ -53,7 +53,79 @@ if ! source "$SVC_ROOT/scripts/util.sh" ||
 	exit 1
 fi
 
+
+#
+# This exists to help us move past the MANTA-4251 flag-day change where we need
+# to use the GC_INSTR_WRITE_* variables in the metadata instead of
+# GC_INSTR_UPLOAD_*. If it determines the config needs to be updated, it will
+# copy the old values to the new, leaving the old values in place in order to
+# support rollback.
+#
+# Once every existing garbage-collector zone has been updated past this
+# flag-day, this code can be removed.
+#
+function upgrade_sapi_config {
+    local new_json
+
+    SAPI_SERVICE_JSON=$(curl -sS $SAPI_URL/services?name=garbage-collector | json -H 0)
+    if [[ -z $SAPI_SERVICE_JSON ]]; then
+        echo "WARN: Unable to read SAPI service, skipping upgrade attempt."
+        return
+    fi
+    SAPI_SERVICE_UUID=$(json uuid <<<$SAPI_SERVICE_JSON)
+    [[ -n $SAPI_SERVICE_UUID ]] || fatal "Unable to determine SAPI server UUID."
+
+    #
+    # If GC_INSTR_WRITE_BATCH_SIZE is set, we assume the upgrade already
+    # happened since *something* has updated the config to know about this
+    # new parameter.
+    #
+    if [[ -n $(json metadata.GC_INSTR_WRITE_BATCH_SIZE <<<$SAPI_SERVICE_JSON) ]]; then
+        echo "Config already contains GC_INSTR_WRITE_BATCH_SIZE, skipping upgrade."
+        return;
+    fi
+
+    echo "Attempting to upgrade config."
+
+    GC_INSTR_UPLOAD_BATCH_SIZE=$(json metadata.GC_INSTR_UPLOAD_BATCH_SIZE <<<$SAPI_SERVICE_JSON)
+    GC_INSTR_UPLOAD_FLUSH_DELAY=$(json metadata.GC_INSTR_UPLOAD_FLUSH_DELAY <<<$SAPI_SERVICE_JSON)
+    if [[ -z $GC_INSTR_UPLOAD_BATCH_SIZE || -z $GC_INSTR_UPLOAD_FLUSH_DELAY ]]; then
+        #
+        # This is fatal, because if these are missing, we're also not going to
+        # be able to start the service since the config-agent generated config
+        # will be broken JSON.
+        #
+        fatal "Both GC_INSTR_UPLOAD_BATCH_SIZE and GC_INSTR_UPLOAD_FLUSH_DELAY must be set in order to upgrade config."
+    fi
+
+    GC_INSTR_UPLOAD_MIN_BATCH_SIZE=$(json metadata.GC_INSTR_UPLOAD_MIN_BATCH_SIZE <<<$SAPI_SERVICE_JSON)
+    # Use default from MANTA-4249 if MIN_BATCH_SIZE unset
+    [[ -z $GC_INSTR_UPLOAD_MIN_BATCH_SIZE ]] && GC_INSTR_UPLOAD_MIN_BATCH_SIZE=1
+
+    new_json='{"action": "update", "metadata": {}}'
+    new_json=$(json -e "this.metadata.GC_INSTR_WRITE_MIN_BATCH_SIZE=$GC_INSTR_UPLOAD_MIN_BATCH_SIZE" <<<$new_json)
+
+    # Just to make sure, we'll also not overwrite the other keys (we checked
+    # GC_INSTR_WRITE_BATCH_SIZE already).
+    if [[ -z $(json metadata.GC_INSTR_WRITE_BATCH_SIZE <<<$SAPI_SERVICE_JSON) ]]; then
+        new_json=$(json -e "this.metadata.GC_INSTR_WRITE_BATCH_SIZE=$GC_INSTR_UPLOAD_BATCH_SIZE" <<<$new_json)
+    fi
+    if [[ -z $(json metadata.GC_INSTR_WRITE_FLUSH_DELAY <<<$SAPI_SERVICE_JSON) ]]; then
+        new_json=$(json -e "this.metadata.GC_INSTR_WRITE_FLUSH_DELAY=$GC_INSTR_UPLOAD_FLUSH_DELAY" <<<$new_json)
+    fi
+
+    echo "Updating SAPI with:"
+    echo "$new_json"
+
+    curl -sS -X PUT -d @- $SAPI_URL/services/$SAPI_SERVICE_UUID <<<$new_json
+    curl_ret=$?
+    [[ $curl_ret -eq 0 ]] || fatal "PUT failed for SAPI service, exit code: $curl_ret"
+}
+
+
 manta_common_presetup
+
+upgrade_sapi_config
 
 manta_add_manifest_dir "/opt/smartdc/$NAME"
 
