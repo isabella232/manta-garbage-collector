@@ -58,11 +58,19 @@ fi
 # This exists to help us move past the MANTA-4251 flag-day change where we need
 # to use the GC_INSTR_WRITE_* variables in the metadata instead of
 # GC_INSTR_UPLOAD_*. If it determines the config needs to be updated, it will
-# copy the old values to the new, leaving the old values in place in order to
-# support rollback.
+# copy the values (in SAPI service metadata) as follows:
 #
-# Once every existing garbage-collector zone has been updated past this
-# flag-day, this code can be removed.
+#   GC_INSTR_UPLOAD_BATCH_SIZE      -> GC_INSTR_WRITE_BATCH_SIZE
+#   GC_INSTR_UPLOAD_MIN_BATCH_SIZE  -> GC_INSTR_WRITE_MIN_BATCH_SIZE
+#   GC_INSTR_UPLOAD_FLUSH_DELAY     -> GC_INSTR_WRITE_FLUSH_DELAY
+#
+# without modifying or removing the old GC_INSTR_UPLOAD_* values. If
+# GC_INSTR_UPLOAD_MIN_BATCH_SIZE is not set in SAPI, the previous default (1)
+# will be set as the new value for GC_INSTR_WRITE_MIN_BATCH_SIZE.
+#
+# By leaving the GC_INSTR_UPLOAD_* in place, it will be possible to roll the
+# image back to the previous version. Once every existing garbage-collector
+# zone has been updated past this flag-day, this code can be removed.
 #
 function upgrade_sapi_config {
     local new_json
