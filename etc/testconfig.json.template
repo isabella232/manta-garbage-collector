@@ -42,9 +42,9 @@
         }
     ],
     "tunables": {
-        "instr_upload_batch_size": 100,
-        "instr_upload_flush_delay": 1000,
-        "instr_upload_path_prefix": "/poseidon/stor/manta_gc_test/mako",
+        "instr_write_batch_size": 100,
+        "instr_write_flush_delay": 1000,
+        "instr_write_path_prefix": "/poseidon/stor/manta_gc_test/mako",
         "record_read_batch_size": 50,
         "record_read_wait_interval": 1000,
         "record_read_sort_attr": "_mtime",

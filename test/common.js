@@ -13,7 +13,6 @@ var mod_bunyan = require('bunyan');
 var mod_fs = require('fs');
 var mod_jsprim = require('jsprim');
 var mod_path = require('path');
-var mod_manta = require('manta');
 var mod_moray = require('moray');
 var mod_verror = require('verror');
 var mod_vasync = require('vasync');
@@ -21,7 +20,7 @@ var mod_vasync = require('vasync');
 var VE = mod_verror.VError;
 var MorayDeleteRecordReader = require('../lib/moray_delete_record_reader').MorayDeleteRecordReader;
 var MorayDeleteRecordCleaner = require('../lib/moray_delete_record_cleaner').MorayDeleteRecordCleaner;
-var MakoInstructionUploader = require('../lib/mako_instruction_uploader').MakoInstructionUploader;
+var MakoInstructionWriter = require('../lib/mako_instruction_writer').MakoInstructionWriter;
 var DeleteRecordTransformer = require('../lib/delete_record_transformer').DeleteRecordTransformer;
 
 var GCWorker = require('../lib/gc_worker').GCWorker;
@@ -109,15 +108,6 @@ create_mock_context(opts, done)
 				next(err);
 			});
 		},
-		function create_manta_client(next) {
-			if (opts.skip_manta_client) {
-				next();
-				return;
-			}
-			ctx.ctx_manta_client = mod_manta.createClient(
-			    ctx.ctx_cfg.manta);
-			next();
-		}
 	], function (err) {
 		if (err) {
 			console.log(err, 'unable to created mock context');
@@ -157,7 +147,7 @@ create_moray_delete_record_cleaner(ctx, shard)
 
 
 function
-create_mako_instruction_uploader(ctx, listener)
+create_mako_instruction_writer(ctx, listener)
 {
 	var opts = {
 		ctx: ctx,
@@ -247,7 +237,7 @@ create_gc_worker(ctx, shard, bucket, log) {
 
 /*
  * Given an object mapping storage ids to arrays identifying individual objects.
- * Verify that mako cleanup instructions have been uploaded for those objects
+ * Verify that mako cleanup instructions have been written for those objects
  * and only appear once in the object data uploaded by this GC worker.
  */
 function

@@ -5,7 +5,7 @@
 -->
 
 <!--
-    Copyright (c) 2018, Joyent, Inc.
+    Copyright 2019 Joyent, Inc.
 -->
 
 # Manta Garbage Collector
@@ -37,6 +37,8 @@ root of the repository with `$ LOG_LEVEL=<level> bin/server`.
 
 # Running Tests
 
+IMPORTANT (2019-05-09): These tests are currently broken.
+
 The garbage-collector uses [catest](https://github.com/joyent/catest) for auto
 tests. Each major component has a corresponding test script in the `test/`
 directory. Running the tests requires that you have a working Triton/Manta
@@ -55,13 +57,6 @@ To run the tests, you'll want to make the following changes to
   Manta application. The appropriate value can be found by running: `sdc-sapi
   /applications?name=manta | json -Ha metadata.DOMAIN_NAME` on your Triton
   headnode.
-- Replace `manta.user` with the user you're testing with. This must be a
-  snaplink-disabled user.
-- Replace `manta.sign.key` with a private key for the Manta user you're testing
-  with.
-- Replace `manta.sign.keyId` with the value of `ssh-keygen -l -f
-  ~/.ssh/id_rsa.pub | awk '{print $2}' | tr -d '\n'`, for the public key
-  corresponding to the private key in the previous step.
 - Replace the `shards` array with a similarly formatted array pointing to at
   least one metadata shard in your deployment. To find the
   appropriately-formatted list of index shards (along with their urls) run:
@@ -70,10 +65,6 @@ To run the tests, you'll want to make the following changes to
   testing). The tests will create rows in the `manta_fastdelete_queue` on this
   shard. It is recommended that this shard not see too much (if any) other
   accelerated gc delete traffic while you run the tests.
-- Replace the `allowed_creators` array with a similarly formatted array
-  containing at least one reference to the uuid of your `manta.user`.
-  `etc/testconfig.json.template` contains an example of what this array should
-  look like.
 
 Once you've set up the test configuration, run the tests with:
 ```
@@ -96,7 +87,6 @@ The garbage collector targets and has been tested with node-4.8.7.
 
 The configuration in `etc/config.json.template` is an example of how the garbage
 collector is configured. Some chunks of this configuration are described below:
-* `manta`: A JSON object passed to node-manta's `createClient`.
 * `moray`: A JSON object with options passed to node-moray's `createClient`. At
 minimum, this must include a resolver.
 * `shards`: A JSON array of objects. Each object has a "host" field which is the
@@ -170,19 +160,16 @@ accel-gc` attempts to help with these decisions -- see
 
 ### Instruction Upload
 
-* `GC_INSTR_UPLOAD_MIN_BATCH_SIZE` - The minimum number of delete instructions
+* `GC_INSTR_WRITE_MIN_BATCH_SIZE` - The minimum number of delete instructions
   (lines) to include per instruction object.  This ensures that instruction
   files can never have less than a pre-configured number of lines.  This is
   important because performance on the mako side will deteriorate with
   numerous, small instruction files to process. (default: 1)
-* `GC_INSTR_UPLOAD_BATCH_SIZE` - The maximum number of delete instructions
+* `GC_INSTR_WRITE_BATCH_SIZE` - The maximum number of delete instructions
   (lines) to include per instruction object.  Note that there is no guarantee
   that all instruction files will reach this size.
-* `GC_INSTR_UPLOAD_FLUSH_DELAY` - The number of milliseconds to wait between
+* `GC_INSTR_WRITE_FLUSH_DELAY` - The number of milliseconds to wait between
   attempt to upload an instruction object.
-* `GC_INSTR_UPLOAD_PATH_PREFIX` - The location in which to upload delete
-  instructions. In order to maintain interoperability with the offline GC, the
-  value of this variable should always be `poseidon/stor/manta_gc/mako`.
 
 ### Record Delete
 
@@ -206,7 +193,7 @@ The following example will set the instruction upload batch size to 300:
 
 ```
 GCID=$(sdc-sapi /services?name=garbage-collector | json -Ha uuid)
-echo '{ "metadata": {"GC_INSTR_UPLOAD_BATCH_SIZE": 300 } }' | sapiadm update $GCID
+echo '{ "metadata": {"GC_INSTR_WRITE_BATCH_SIZE": 300 } }' | sapiadm update $GCID
 ```
 
 # Metrics
@@ -219,7 +206,7 @@ to node-fast metrics for the two RPCs it uses: `findObjects`, and `batch`.
 | gc_cache_entries           | gauge     | total number of cache entries       |
 | gc_delete_records_read     | histogram | records read per `findObjects`      |
 | gc_delete_records_cleaned  | histogram | records cleaned per `batch`         |
-| gc_mako_instrs_uploaded    | histogram | instructions uploaded per Manta PUT |
+| gc_mako_instrs_written     | histogram | instruction records per file written |
 | gc_bytes_marked_for_delete | histogram | how much storage space can be reclaimed after a round of `mako_gc.sh` on all sharks |
 
 # HTTP Management Interface
@@ -323,9 +310,10 @@ GET /tunables
 Response:
 
 {
-	"instr_upload_batch_size": integer,
-	"instr_upload_flush_delay": integer,
-	"instr_upload_path_prefix": string,
+	"instr_write_batch_size": integer,
+	"instr_write_min_batch_size": integer,
+	"instr_write_flush_delay": integer,
+	"instr_write_path_prefix": string,
 	"record_read_batch_size": integer,
 	"record_read_wait_interval": integer (ms),
 	"record_read_sort_attr": "_mtime",
@@ -342,9 +330,10 @@ POST /tunables
 Content-Type: application/json
 
 {
-	"instr_upload_batch_size": integer,
-	"instr_upload_flush_delay": integer,
-	"instr_upload_path_prefix": string
+	"instr_write_batch_size": integer,
+	"instr_write_min_batch_size": integer,
+	"instr_write_flush_delay": integer,
+	"instr_write_path_prefix": string
 	"record_read_batch_size": integer,
 	"record_read_wait_interval": integer (ms),
 	"record_read_sort_attr": "_mtime",

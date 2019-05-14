@@ -13,7 +13,6 @@ var mod_assertplus = require('assert-plus');
 var mod_bunyan = require('bunyan');
 var mod_fs = require('fs');
 var mod_jsprim = require('jsprim');
-var mod_manta = require('manta');
 var mod_moray = require('moray');
 var mod_path = require('path');
 var mod_restify = require('restify');
@@ -204,22 +203,6 @@ load_manta_application(ctx, done)
 
 
 function
-setup_manta_client(ctx, done)
-{
-	var overrides = {
-		log: ctx.ctx_log
-	};
-	var manta_cfg = mod_jsprim.mergeObjects(ctx.ctx_cfg.manta,
-		overrides, null);
-
-	ctx.ctx_manta_client = mod_manta.createClient(manta_cfg);
-	ctx.ctx_log.debug('created manta client');
-
-	setImmediate(done);
-}
-
-
-function
 setup_metrics(ctx, done)
 {
 	var metrics_manager = createMetricsManager({
@@ -257,8 +240,8 @@ setup_metrics(ctx, done)
 	});
 
 	metrics_manager.collector.histogram({
-		name: 'gc_mako_instrs_uploaded',
-		help: 'number of instructions uploaded per manta put'
+		name: 'gc_mako_instrs_written',
+		help: 'number of instructions written per local file'
 	});
 
 	metrics_manager.collector.histogram({
@@ -342,11 +325,6 @@ main()
 		 * Load 'manta' application object.
 		 */
 		load_manta_application,
-
-		/*
-		 * Create one manta client.
-		 */
-		setup_manta_client,
 
 		/*
 		 * Create the gc manager

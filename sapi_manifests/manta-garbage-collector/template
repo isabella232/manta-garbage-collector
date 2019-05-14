@@ -44,17 +44,17 @@
 		}
 		{{/GC_ASSIGNED_BUCKETS}}
 	],
-	"concurrency": {{#GC_CONCURRENCY}}{{GC_CONCURRENCY}}{{/GC_CONCURRENCY}}{{^GC_CONCURRENCY}}{{GC_MANTA_FASTDELETE_QUEUE_CONCURRENCY}}{{/GC_CONCURRENCY}},
+	"concurrency": 1,
 	"allowed_creators": [{{#ACCOUNTS_SNAPLINKS_DISABLED}}
 		{
 			"uuid": "{{uuid}}"
 		}{{^last}},{{/last}}{{/ACCOUNTS_SNAPLINKS_DISABLED}}
 	],
 	"tunables": {
-		"instr_upload_min_batch_size": {{#GC_INSTR_UPLOAD_MIN_BATCH_SIZE}}{{GC_INSTR_UPLOAD_MIN_BATCH_SIZE}}{{/GC_INSTR_UPLOAD_MIN_BATCH_SIZE}}{{^GC_INSTR_UPLOAD_MIN_BATCH_SIZE}}1{{/GC_INSTR_UPLOAD_MIN_BATCH_SIZE}},
-		"instr_upload_batch_size": {{GC_INSTR_UPLOAD_BATCH_SIZE}},
-		"instr_upload_flush_delay": {{GC_INSTR_UPLOAD_FLUSH_DELAY}},
-		"instr_upload_path_prefix": "{{GC_INSTR_UPLOAD_PATH_PREFIX}}",
+		"instr_write_batch_size": {{GC_INSTR_WRITE_BATCH_SIZE}},
+		"instr_write_min_batch_size": {{GC_INSTR_WRITE_MIN_BATCH_SIZE}},
+		"instr_write_flush_delay": {{GC_INSTR_WRITE_FLUSH_DELAY}},
+		"instr_write_path_prefix": "/var/spool/manta_gc/mako",
 		"record_read_batch_size": {{GC_RECORD_READ_BATCH_SIZE}},
 		"record_read_wait_interval": {{GC_RECORD_READ_WAIT_INTERVAL}},
 		"record_read_sort_attr": "{{GC_RECORD_READ_SORT_ATTR}}",

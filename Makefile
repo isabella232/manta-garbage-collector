@@ -60,7 +60,7 @@ BOOT_DIR =			/opt/smartdc/boot
 SAPI_MANIFESTS =		manta-garbage-collector
 SAPI_MANIFEST_DIRS =		$(SAPI_MANIFESTS:%=$(PREFIX)/sapi_manifests/%)
 
-SMF_MANIFESTS =			garbage-collector
+SMF_MANIFESTS =			garbage-collector rsyncd
 SMF_MANIFESTS_DIR =		$(PREFIX)/smf/manifests
 
 NODE_BITS =			bin/node
@@ -81,6 +81,7 @@ INSTALL_FILES =			$(addprefix $(PROTO), \
 				$(SAPI_MANIFEST_DIRS:%=%/template) \
 				$(SAPI_MANIFEST_DIRS:%=%/manifest.json) \
 				$(PREFIX)/bin/garbage-collector \
+				$(PREFIX)/etc/rsyncd.conf \
 				)
 
 INSTALL_DIRS =			$(addprefix $(PROTO), \
@@ -93,6 +94,7 @@ INSTALL_DIRS =			$(addprefix $(PROTO), \
 				$(PREFIX)/cmd \
 				$(PREFIX)/bin \
 				$(PREFIX)/lib \
+				$(PREFIX)/etc \
 				$(SAPI_MANIFEST_DIRS) \
 				)
 
@@ -172,6 +174,9 @@ $(PROTO)$(PREFIX)/bin/%:
 
 $(PROTO)$(PREFIX)/bin/garbage-collector: scripts/garbage-collector.sh
 	$(INSTALL_EXEC)
+
+$(PROTO)$(PREFIX)/etc/rsyncd.conf: etc/rsyncd.conf
+	$(INSTALL_FILE)
 
 $(PROTO)$(PREFIX)/lib/%.sh: lib/%.sh | $(INSTALL_DIRS)
 	$(INSTALL_EXEC)
