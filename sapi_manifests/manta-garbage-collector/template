@@ -44,7 +44,7 @@
 		}
 		{{/GC_ASSIGNED_BUCKETS}}
 	],
-	"concurrency": {{#GC_CONCURRENCY}}{{GC_CONCURRENCY}}{{/GC_CONCURRENCY}}{{^GC_CONCURRENCY}}{{GC_MANTA_FASTDELETE_QUEUE_CONCURRENCY}}{{/GC_CONCURRENCY}},
+	"concurrency": 1,
 	"allowed_creators": [{{#ACCOUNTS_SNAPLINKS_DISABLED}}
 		{
 			"uuid": "{{uuid}}"
