@@ -5,7 +5,7 @@
 #
 
 #
-# Copyright (c) 2019, Joyent, Inc.
+# Copyright 2019 Joyent, Inc.
 #
 
 #
@@ -35,6 +35,7 @@ TOP ?= $(error Unable to access eng.git submodule Makefiles.)
 include ./deps/eng/tools/mk/Makefile.node_prebuilt.defs
 include ./deps/eng/tools/mk/Makefile.agent_prebuilt.defs
 include ./deps/eng/tools/mk/Makefile.node_modules.defs
+include ./deps/eng/tools/mk/Makefile.smf.defs
 
 #
 # Install macros and targets:
@@ -60,7 +61,8 @@ BOOT_DIR =			/opt/smartdc/boot
 SAPI_MANIFESTS =		manta-garbage-collector
 SAPI_MANIFEST_DIRS =		$(SAPI_MANIFESTS:%=$(PREFIX)/sapi_manifests/%)
 
-SMF_MANIFESTS =			garbage-collector
+SMF_MANIFESTS_FILES =		garbage-collector
+SMF_MANIFESTS =			$(SMF_MANIFESTS_FILES:%=smf/manifests/%.xml)
 SMF_MANIFESTS_DIR =		$(PREFIX)/smf/manifests
 
 NODE_BITS =			bin/node
@@ -71,7 +73,7 @@ INSTALL_FILES =			$(addprefix $(PROTO), \
 				$(BOOT_SCRIPTS:%=$(BOOT_DIR)/%) \
 				$(SCRIPTS:%=$(SCRIPTS_DIR)/%) \
 				$(TEMPLATES:%=$(TEMPLATES_DIR)/%) \
-				$(SMF_MANIFESTS:%=$(SMF_MANIFESTS_DIR)/%.xml) \
+				$(SMF_MANIFESTS:%=$(PREFIX)/%) \
 				$(NODE_BITS:%=$(NODE_DIR)/%) \
 				$(NODE_MODULE_INSTALL) \
 				$(COMMANDS:%=$(PREFIX)/cmd/%.js) \
@@ -212,3 +214,4 @@ include ./deps/eng/tools/mk/Makefile.targ
 include ./deps/eng/tools/mk/Makefile.node_prebuilt.targ
 include ./deps/eng/tools/mk/Makefile.agent_prebuilt.targ
 include ./deps/eng/tools/mk/Makefile.node_modules.targ
+include ./deps/eng/tools/mk/Makefile.smf.targ
