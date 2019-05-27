@@ -185,22 +185,6 @@ setup_sapi_client(ctx, done)
 }
 
 
-function
-load_manta_application(ctx, done)
-{
-	lib_triton_access.get_sapi_application(ctx.ctx_log, ctx.ctx_sapi,
-		'manta', true, function (err, app) {
-		if (err) {
-			done(err);
-		}
-
-		ctx.ctx_manta_app = app;
-		ctx.ctx_log.debug('Loaded manta application.');
-
-		done();
-	});
-}
-
 
 function
 setup_metrics(ctx, done)

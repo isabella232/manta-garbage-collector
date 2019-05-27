@@ -9,11 +9,10 @@
 #
 
 #
-# Makefile: Manta Fast Garbage Collection System
+# Makefile: basic Makefile for template API service
 #
 
 NAME :=				manta-garbage-collector
-CATEST :=			deps/catest/catest
 
 NODE_PREBUILT_TAG =		zone64
 NODE_PREBUILT_VERSION =		v4.8.7
@@ -37,10 +36,11 @@ include ./deps/eng/tools/mk/Makefile.agent_prebuilt.defs
 include ./deps/eng/tools/mk/Makefile.node_modules.defs
 include ./deps/eng/tools/mk/Makefile.smf.defs
 
-#
-# Install macros and targets:
-#
-
+# This Makefile is a template for new repos. It contains only repo-specific
+# logic and uses included makefiles to supply common targets (javascriptlint,
+# jsstyle, restdown, etc.), which are used by other repos as well. You may well
+# need to rewrite most of this file, but you shouldn't need to touch the
+# included makefiles.
 COMMANDS =			$(subst .js,,$(notdir $(wildcard cmd/*.js)))
 
 LIB_FILES =			$(notdir $(wildcard lib/*.js))
@@ -102,67 +102,46 @@ INSTALL_DIRS =			$(addprefix $(PROTO), \
 INSTALL_EXEC =			rm -f $@ && cp $< $@ && chmod 755 $@
 INSTALL_FILE =			rm -f $@ && cp $< $@ && chmod 644 $@
 
-CATEST_FILES = 			$(shell find test -name '*.test.js')
 
-JS_FILES =			$(shell find cmd -name '*.js') \
-				$(shell find lib -name '*.js') \
-				$(shell find tools -name '*.js')
+NODE_PREBUILT_VERSION=v6.17.0
+ifeq ($(shell uname -s),SunOS)
+        NODE_PREBUILT_TAG=zone64
+        NODE_PREBUILT_IMAGE=c2c31b00-1d60-11e9-9a77-ff9f06554b0f
+endif
 
-BASH_FILES =			$(shell find tools -name "assign_shards_to_collectors.sh")
+ENGBLD_USE_BUILDIMAGE	= true
+ENGBLD_REQUIRE		:= $(shell git submodule update --init deps/eng)
+include ./deps/eng/tools/mk/Makefile.defs
+TOP ?= $(error Unable to access eng.git submodule Makefiles.)
 
-JSL_FILES_NODE = 		$(JS_FILES)
+ifeq ($(shell uname -s),SunOS)
+	include ./deps/eng/tools/mk/Makefile.node_prebuilt.defs
+	include ./deps/eng/tools/mk/Makefile.agent_prebuilt.defs
+endif
+include ./deps/eng/tools/mk/Makefile.smf.defs
 
-JSSTYLE_FILES = 		$(JS_FILES)
+# Mountain Gorilla-spec'd versioning.
+ROOT                    := $(shell pwd)
+RELEASE_TARBALL         := $(NAME)-pkg-$(STAMP).tar.gz
+RELSTAGEDIR                  := /tmp/$(NAME)-$(STAMP)
+MGCSTAGEDIR                  := $(RELSTAGEDIR)/root/opt/smartdc/manta-garbage-collector
 
-JSL_CONF_NODE = 		deps/eng/tools/jsl.node.conf
-
-JSON_FILES = 			package.json
-
-#
-# Stuff used for buildimage
-#
-BASE_IMAGE_UUID		= 04a48d7d-6bb5-4e83-8c3b-e60a99e0f48f
+# our base image is triton-origin-x86_64-18.4.0
+BASE_IMAGE_UUID = a9368831-958e-432d-a031-f8ce6768d190
 BUILDIMAGE_NAME		= mantav2-garbage-collector
-BUILDIMAGE_DESC		= Manta Garbage Collector
-AGENTS = amon config registrar
+BUILDIMAGE_DESC	= Manta Garbage Collector
+AGENTS		= amon config registrar
+PATH	:= $(NODE_INSTALL)/bin:/opt/local/bin:${PATH}
 
+#
+# Repo-specific targets
+#
 .PHONY: all
-all: $(STAMP_NODE_PREBUILT) $(STAMP_NODE_MODULES) install
-	$(NODE) --version
+all: $(SMF_MANIFESTS) | $(TAP) manta-scripts
+	$(NPM) install
 
-.PHONY: test
-test: | $(CATEST)
-	$(CATEST) $(CATEST_FILES)
-
-$(CATEST): deps/catest/.git
-
-$(INSTALL_FILES): manta-scripts
-
-.PHONY: install
-install: $(NODE_EXEC) $(INSTALL_FILES)
-
-$(INSTALL_DIRS):
-	mkdir -p $@
-
-manta-scripts: ./deps/manta-scripts/.git
-
-$(PROTO)$(BOOT_DIR)/setup.sh: | $(INSTALL_DIRS)
-	rm -f $@ && ln -s ../$(NAME)/scripts/firstboot.sh $@
-
-$(PROTO)$(BOOT_DIR)/configure.sh: | $(INSTALL_DIRS)
-	rm -f $@ && ln -s ../$(NAME)/scripts/everyboot.sh $@
-
-$(PROTO)$(PREFIX)/scripts/%.sh: deps/manta-scripts/%.sh | $(INSTALL_DIRS)
-	$(INSTALL_EXEC)
-
-$(PROTO)$(PREFIX)/scripts/%.sh: boot/%.sh | $(INSTALL_DIRS)
-	$(INSTALL_EXEC)
-
-$(PROTO)$(PREFIX)/templates/%: templates/% | $(INSTALL_DIRS)
-	$(INSTALL_FILE)
-
-$(PROTO)$(PREFIX)/node/bin/%: $(INSTALL_DIRS)
-	rm -f $@ && cp $(NODE_INSTALL)/bin/$(@F) $@ && chmod 755 $@
+$(TAP): | $(NPM_EXEC)
+	$(NPM) install
 
 $(PROTO)$(PREFIX)/node/lib/%: $(INSTALL_DIRS)
 	rm -f $@ && cp $(NODE_INSTALL)/lib/$(@F) $@ && chmod 755 $@
@@ -195,24 +174,56 @@ $(PROTO)$(PREFIX)/smf/manifests/%.xml: smf/manifests/%.xml | $(INSTALL_DIRS)
 
 
 .PHONY: release
-release: install
-	@echo "==> Building $(RELEASE_TARBALL)"
-	cd $(PROTO) && gtar -I pigz -cf $(TOP)/$(RELEASE_TARBALL) \
-	    --transform='s,^[^.],root/&,' \
-	    --owner=0 --group=0 \
-	    opt
+release: check all docs
+	@echo "Building $(RELEASE_TARBALL)"
+	@mkdir -p $(MGCSTAGEDIR)/etc
+	@mkdir -p $(RELSTAGEDIR)/site
+	@touch $(RELSTAGEDIR)/site/.do-not-delete-me
+	@mkdir -p $(RELSTAGEDIR)/root
+	cp -r $(ROOT)/build \
+		$(ROOT)/cmd \
+		$(ROOT)/docs \
+		$(ROOT)/lib \
+		$(ROOT)/node_modules \
+		$(ROOT)/README.md \
+		$(ROOT)/package.json \
+		$(ROOT)/sapi_manifests \
+		$(ROOT)/smf \
+		$(ROOT)/test \
+		$(MGCSTAGEDIR)/
+	mkdir -p $(MGCSTAGEDIR)/scripts
+	cp -R $(ROOT)/deps/manta-scripts/* $(MGCSTAGEDIR)/scripts/
+	cp -R $(ROOT)/boot/* $(MGCSTAGEDIR)/scripts/
+	mkdir -p $(RELSTAGEDIR)/root/opt/smartdc/boot
+	rm -f $(RELSTAGEDIR)/root/opt/smartdc/boot/{configure,setup}.sh
+	(cd $(RELSTAGEDIR)/root/opt/smartdc/boot && ln -s ../manta-garbage-collector/boot/firstboot.sh setup.sh)
+	(cd $(RELSTAGEDIR)/root/opt/smartdc/boot && ln -s ../manta-garbage-collector/boot/everyboot.sh configure.sh)
+	(cd $(RELSTAGEDIR) && $(TAR) -I pigz -cf $(ROOT)/$(RELEASE_TARBALL) root site)
+	@rm -rf $(RELSTAGEDIR)
+
 
 .PHONY: publish
 publish: release
+	@if [[ -z "$(ENGBLD_BITS_DIR)" ]]; then \
+	  echo "error: 'ENGBLD_BITS_DIR' must be set for 'publish' target"; \
+	  exit 1; \
+	fi
 	mkdir -p $(ENGBLD_BITS_DIR)/$(NAME)
-	cp $(RELEASE_TARBALL) $(ENGBLD_BITS_DIR)/$(NAME)/$(RELEASE_TARBALL)
+	cp $(ROOT)/$(RELEASE_TARBALL) $(ENGBLD_BITS_DIR)/$(NAME)/$(RELEASE_TARBALL)
 
-check:: $(NODE_EXEC)
+
+.PHONY: test
+test: $(TAP)
+	TAP=1 $(TAP) test/*.test.js
 
 
 include ./deps/eng/tools/mk/Makefile.deps
+ifeq ($(shell uname -s),SunOS)
+	include ./deps/eng/tools/mk/Makefile.node_prebuilt.targ
+	include ./deps/eng/tools/mk/Makefile.agent_prebuilt.targ
+endif
+include ./deps/eng/tools/mk/Makefile.smf.targ
 include ./deps/eng/tools/mk/Makefile.targ
 include ./deps/eng/tools/mk/Makefile.node_prebuilt.targ
 include ./deps/eng/tools/mk/Makefile.agent_prebuilt.targ
 include ./deps/eng/tools/mk/Makefile.node_modules.targ
-include ./deps/eng/tools/mk/Makefile.smf.targ

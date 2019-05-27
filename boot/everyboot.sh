@@ -6,12 +6,14 @@
 #
 
 #
-# Copyright (c) 2018, Joyent, Inc.
+# Copyright (c) 2019, Joyent, Inc.
 #
 
 #
-# Runs on every boot of a newly reprovisioned "garbage-collector" zone.
-# (Installed as "configure.sh" to be executed by the "user-script")
+# Runs on every boot of a "garbage-collector" zone.
+#
+# (Installed as "configure.sh" which is the standard name, and will be executed
+# by the "user-script")
 #
 
 printf '==> everyboot @ %s\n' "$(date -u +%FT%TZ)"
