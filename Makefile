@@ -197,8 +197,8 @@ release: check all docs
 	cp -R $(ROOT)/boot/* $(MGCSTAGEDIR)/scripts/
 	mkdir -p $(RELSTAGEDIR)/root/opt/smartdc/boot
 	rm -f $(RELSTAGEDIR)/root/opt/smartdc/boot/{configure,setup}.sh
-	(cd $(RELSTAGEDIR)/root/opt/smartdc/boot && ln -s ../manta-garbage-collector/boot/firstboot.sh setup.sh)
-	(cd $(RELSTAGEDIR)/root/opt/smartdc/boot && ln -s ../manta-garbage-collector/boot/everyboot.sh configure.sh)
+	(cd $(RELSTAGEDIR)/root/opt/smartdc/boot && ln -s ../manta-garbage-collector/scripts/firstboot.sh setup.sh)
+	(cd $(RELSTAGEDIR)/root/opt/smartdc/boot && ln -s ../manta-garbage-collector/scripts/everyboot.sh configure.sh)
 	(cd $(RELSTAGEDIR) && $(TAR) -I pigz -cf $(ROOT)/$(RELEASE_TARBALL) root site)
 	@rm -rf $(RELSTAGEDIR)
 
