@@ -193,8 +193,9 @@ release: check all docs
 		$(ROOT)/test \
 		$(MGCSTAGEDIR)/
 	mkdir -p $(MGCSTAGEDIR)/scripts
-	cp -R $(ROOT)/deps/manta-scripts/* $(MGCSTAGEDIR)/scripts/
-	cp -R $(ROOT)/boot/* $(MGCSTAGEDIR)/scripts/
+	cp -R $(ROOT)/deps/manta-scripts/*.sh $(MGCSTAGEDIR)/scripts/
+	cp -R $(ROOT)/boot/*.sh $(MGCSTAGEDIR)/scripts/
+	chmod 755 $(MGCSTAGEDIR)/scripts/*.sh
 	mkdir -p $(RELSTAGEDIR)/root/opt/smartdc/boot
 	rm -f $(RELSTAGEDIR)/root/opt/smartdc/boot/{configure,setup}.sh
 	(cd $(RELSTAGEDIR)/root/opt/smartdc/boot && ln -s ../manta-garbage-collector/scripts/firstboot.sh setup.sh)
