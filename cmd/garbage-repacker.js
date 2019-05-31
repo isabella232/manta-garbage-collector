@@ -41,13 +41,7 @@
 //    eventually consume everything?
 //
 
-var fs = require('fs');
-var path = require('path');
-
 var assert = require('assert-plus');
-var bunyan = require('bunyan');
-var createMetricsManager = require('triton-metrics').createMetricsManager;
-var jsprim = require('jsprim');
 var moray = require('moray');
 var vasync = require('vasync');
 var verror = require('verror');
@@ -196,6 +190,8 @@ function createMantaGarbageBucket(opts, callback) {
                     common.MANTA_GARBAGE_BUCKET,
                     function _onCreated(createdErr, createdFoo) {
 
+                    // XXX check for overload?
+
                     log.info({
                         err: createdErr,
                         foo: createdFoo
@@ -243,6 +239,11 @@ function findGarbageLoad(opts, callback) {
 
     req.once('error', function (err) {
         log.info({err: err}, 'error');
+
+        if (common.isMorayOverloaded(err)) {
+            log.info('moray is overloaded, we should back off');
+        }
+
         callback(err);
     });
 
@@ -265,6 +266,8 @@ function findGarbageLoad(opts, callback) {
         counters.totalBytes += value.contentLength;
         counters.totalObjects++;
 
+        // XXX we have a _count? Can we use that?
+
         // NOTE: 0-byte objects will have no "sharks", these will also get
         // pruned out here (since the for loop won't include them in records)
         // but we still want to count them for metrics purposes.
@@ -275,10 +278,14 @@ function findGarbageLoad(opts, callback) {
         counters.totalObjectsByCopies[value.sharks.length]++;
 
         for (idx = 0; idx < value.sharks.length; idx++) {
+
+            // XXX explain and make sure the creator || owner stuff is correctly
+            // matching what we did before.
+
             records.push({
                 bytes: value.contentLength,
                 objectId: value.objectId,
-                ownerId: value.owner,
+                ownerId: value.creator || value.owner,
                 path: value.key,
                 storageId: value.sharks[idx].manta_storage_id
             });
@@ -341,6 +348,8 @@ function repackGarbageLoad(opts, load, callback) {
             err: err,
             metadata: metadata
         }, 'did batch');
+
+        // XXX check for overload?
 
         callback(err);
     });

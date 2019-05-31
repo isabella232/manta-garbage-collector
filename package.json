@@ -16,6 +16,8 @@
     "mkdirp": "0.5.1",
     "moray": "3.5.0",
     "moray-filter": "1.0.0",
+    "restify": "4.3.4",
+    "restify-clients": "2.6.6",
     "tap": "14.1.11",
     "triton-metrics": "1.0.2",
     "uuid": "3.3.2",
