@@ -9,7 +9,7 @@
 # Copyright 2019 Joyent, Inc.
 #
 
-printf '==> firstboot @ %s\n' "$(date -u +%FT%TZ)"
+printf '==> setup.sh @ %s\n' "$(date -u +%FT%TZ)"
 
 set -o xtrace
 

@@ -16,7 +16,7 @@
 # by the "user-script")
 #
 
-printf '==> everyboot @ %s\n' "$(date -u +%FT%TZ)"
+printf '==> configure.sh @ %s\n' "$(date -u +%FT%TZ)"
 
 exit 0
 
