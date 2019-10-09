@@ -32,7 +32,6 @@ SVC_ROOT="/opt/smartdc/$NAME"
 #
 paths=(
     "$SVC_ROOT/bin"
-    "$SVC_ROOT/node_modules/.bin"
     "$SVC_ROOT/node/bin"
     "/opt/local/bin"
     "/opt/local/sbin"
