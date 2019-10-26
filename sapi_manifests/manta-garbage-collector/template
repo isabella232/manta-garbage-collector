@@ -23,6 +23,7 @@
     },
     "sapi_url": "{{{SAPI_URL}}}",
     "instance": "{{auto.ZONENAME}}",
+    "admin_ip": "{{auto.ADMIN_IP}}",
     "server_uuid": "{{auto.SERVER_UUID}}",
     "service_name": "{{SERVICE_NAME}}",
     "domain": "{{{DOMAIN_NAME}}}",

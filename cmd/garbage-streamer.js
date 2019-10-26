@@ -13,8 +13,8 @@
 //
 //  * manta_fastdelete_queue
 //
-// Moray bucket(s), and repack them into separate per-"shark" records in the
-// same Moray in the "manta_garbage" bucket. These separated records include:
+// bucket(s), and repack them into separate per-"shark" records in the
+// "manta_garbage" bucket. These separated records include:
 //
 //  * bytes (for metrics/auditing)
 //  * objectId
@@ -25,23 +25,15 @@
 // and therefore contain everything that's necessary to actually collect garbage
 // on the individual storage/mako zones ("sharks"). Because they're separated
 // into individual required delete actions, the records here can be removed as
-// each entry is processed. There's no need to do additional tracking of which
-// makos have received each record (as is the case if using the
-// "manta_fastdelete_queue" bucket directly).
+// another process sweeps through the "manta_garbage" table and sends the
+// instructions to the appropriate storage zones.
 //
-// Notes:
-//
-// This program is only required because the existing deletion records are
-// in an unfortunate form that includes the sharks as an *array*. If we can
+// Note: this program is only required because the existing deletion records are
+// in an unfortunate form that includes the sharks as an array. If we can
 // eventually modify muskie + the triggers to insert separate rows for each
 // deletion that's required, we could do away with this program entirely.
 //
-// For the "buckets" project, there is not currently any way to collect garbage
-// (See https://jira.joyent.us/browse/MANTA-4320) but when there is, it has been
-// requested that the garbage be written with separate records per mako from the
-// beginning. If that is done, this program will also never need to be used with
-// "buckets".
-//
+
 
 // Things to think about:
 //

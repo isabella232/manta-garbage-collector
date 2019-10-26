@@ -13,6 +13,10 @@
 //
 //  * manta_garbage
 //
+// bucket in moray and/or the:
+//
+//  
+//
 // and write them to "instructions" files in:
 //
 //   /var/spool/manta_gc/moray/<morayShardId>/<storageId>/*
