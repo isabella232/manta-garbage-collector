@@ -57,17 +57,20 @@ install: $(NODE_EXEC) $(STAMP_NODE_MODULES)
 	mkdir -p $(PROTO)$(PREFIX)
 	mkdir -p $(PROTO)$(PREFIX)/../boot
 	cp -r $(ROOT)/lib \
-	    $(ROOT)/build \
 	    $(ROOT)/node_modules \
 	    $(ROOT)/package.json \
 	    $(ROOT)/sapi_manifests \
 	    $(ROOT)/smf \
 	    $(ROOT)/tools \
 	    $(PROTO)$(PREFIX)/
+	mkdir -p $(PROTO)$(PREFIX)/bin
+	cp $(ROOT)/build/node/bin/node $(PROTO)$(PREFIX)/bin/
+	chmod 755 $(PROTO)$(PREFIX)/bin/node
 	mkdir -p $(PROTO)$(PREFIX)/scripts
 	cp $(ROOT)/deps/manta-scripts/*.sh $(PROTO)$(PREFIX)/scripts/
 	cp $(ROOT)/boot/*.sh $(PROTO)$(PREFIX)/scripts/
-	(cd $(PROTO)$(PREFIX)/../boot && ln -s ../{setup,configure}.sh .)
+	chmod 755 $(PROTO)$(PREFIX)/scripts/*.sh
+	(cd $(PROTO)$(PREFIX)/../boot && ln -s ../$(NAME)/scripts/{setup,configure}.sh .)
 
 .PHONY: release
 release: install
