@@ -101,12 +101,6 @@ INSTALL_FILE =			rm -f $@ && cp $< $@ && chmod 644 $@
 
 BASH_FILES =			$(shell find tools -name "assign_shards_to_collectors.sh")
 
-JSL_FILES_NODE = 		$(JS_FILES)
-
-JSSTYLE_FILES = 		$(JS_FILES)
-
-JSL_CONF_NODE = 		deps/eng/tools/jsl.node.conf
-
 # our base image is triton-origin-x86_64-18.4.0
 BASE_IMAGE_UUID = a9368831-958e-432d-a031-f8ce6768d190
 BUILDIMAGE_NAME		= mantav2-garbage-collector
