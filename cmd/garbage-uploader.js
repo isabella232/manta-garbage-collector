@@ -60,12 +60,10 @@ var restifyClients = require('restify-clients');
 var triton_metrics = require('triton-metrics');
 var vasync = require('vasync');
 
-// XXX rename this common before I die
-var common = require('../lib/common.new');
+var common = require('../lib/common');
 
-
+var elapsedSince = common.elapsedSince;
 var METRICS_SERVER_PORT = 8883;
-var NS_PER_SEC = 1e9;
 var SERVICE_NAME = 'garbage-uploader';
 
 
@@ -83,6 +81,7 @@ function GarbageUploader(opts) {
     self.filesReadCounts = {};
     self.filesReadTotal = 0;
     self.log = opts.log;
+    self.metricsManager = opts.metricsManager;
     self.nextTimer = null;
     self.runFreq = 10000; // ms
 }
@@ -129,7 +128,7 @@ GarbageUploader.prototype.stop = function stop(callback) {
 GarbageUploader.prototype.run = function run(callback) {
     var self = this;
 
-    var before;
+    var beginning;
     var beforeDeletedCount;
     var beforeReadCount;
     var dirtyCount;
@@ -138,7 +137,7 @@ GarbageUploader.prototype.run = function run(callback) {
 
     self.log.debug({dirty: self.dirtyStorageZones}, 'Running GarbageUploader.');
 
-    before = process.hrtime();
+    beginning = process.hrtime();
     beforeDeletedCount = self.filesDeletedTotal;
     beforeReadCount = self.filesReadTotal;
     dirtyCount = Object.keys(self.dirtyStorageZones).length;
@@ -152,15 +151,13 @@ GarbageUploader.prototype.run = function run(callback) {
             }
         ]
     }, function _endRun(err) {
-        var delta = process.hrtime(before);
-        var elapsed = (delta[0] + (delta[1] / NS_PER_SEC));
         var runDeleted = self.filesDeletedTotal - beforeDeletedCount;
         var runRead = self.filesReadTotal - beforeReadCount;
 
         self.log.info({
             deleted: runDeleted,
             dirtyCount: dirtyCount,
-            elapsed: elapsed,
+            elapsed: elapsedSince(beginning),
             err: err,
             read: runRead
         }, 'GarbageUploader run complete.');
@@ -180,7 +177,7 @@ GarbageUploader.prototype.run = function run(callback) {
 GarbageUploader.prototype.putInstructionFile = function putInstructionFile(filename, dirname, storageId, callback) {
     var self = this;
 
-    var before;
+    var beginning;
     var client;
     var filePath;
     var remotePath;
@@ -197,7 +194,7 @@ GarbageUploader.prototype.putInstructionFile = function putInstructionFile(filen
     // NOTE: /manta_gc/* will be /manta/manta_gc/* on the storage node
     remotePath = path.join('/manta_gc/', filename);
 
-    before = process.hrtime();
+    beginning = process.hrtime();
 
     client = restifyClients.createClient({
         url: 'http://' + storageId
@@ -206,15 +203,16 @@ GarbageUploader.prototype.putInstructionFile = function putInstructionFile(filen
     client.put(remotePath, function _onPut(err, req) {
         fs.createReadStream(filePath).pipe(req);
         req.once('result', function _onResult(e, res) {
-            var delta = process.hrtime(before);
-            var elapsed = (delta[0] + (delta[1] / NS_PER_SEC));
-
             if (!err) {
-                self.log.debug({elapsed: elapsed, req: req, result: {
-                    headers: res.headers,
-                    statusCode: res.statusCode,
-                    statusMessage: res.statusMessage
-                }}, 'PUT Success. Deleting %s.', filePath);
+                self.log.debug({
+                    elapsed: elapsedSince(beginning),
+                    req: req,
+                    result: {
+                        headers: res.headers,
+                        statusCode: res.statusCode,
+                        statusMessage: res.statusMessage
+                    }
+                }, 'PUT Success. Deleting %s.', filePath);
 
                 // XXX what happens when unlink fails (readonly, etc)
                 //
@@ -229,7 +227,11 @@ GarbageUploader.prototype.putInstructionFile = function putInstructionFile(filen
                 self.filesDeletedCounts[storageId]++;
                 self.filesDeletedTotal++;
             } else {
-                self.log.warn({elapsed: elapsed, err: e, req: req}, 'PUT Failed. Will retry.');
+                self.log.warn({
+                    elapsed: elapsedSince(beginning),
+                    err: e,
+                    req: req
+                }, 'PUT Failed. Will retry.');
             }
 
             callback(err);
@@ -241,7 +243,7 @@ GarbageUploader.prototype.putInstructionFile = function putInstructionFile(filen
 GarbageUploader.prototype.processDirtyStorageZone = function processDirtyStorageZone(storageId, callback) {
     var self = this;
 
-    var before;
+    var beginning;
     var dir;
     var startTime;
 
@@ -252,15 +254,12 @@ GarbageUploader.prototype.processDirtyStorageZone = function processDirtyStorage
 
     dir = path.join(common.INSTRUCTION_ROOT, storageId);
 
-    before = process.hrtime();
+    beginning = process.hrtime();
     startTime = new Date().getTime();
 
     fs.readdir(dir, function _onReaddir(err, files) {
-        var delta = process.hrtime(before);
-        var elapsed = (delta[0] + (delta[1] / NS_PER_SEC));
-
         self.log.debug({
-            elapsed: elapsed,
+            elapsed: elapsedSince(beginning),
             err: err,
             files: files,
             storageId: storageId
@@ -285,11 +284,8 @@ GarbageUploader.prototype.processDirtyStorageZone = function processDirtyStorage
         }, function _processedAllFiles(err, results) {
             // XXX on error what to do?
 
-            delta = process.hrtime(before);
-            elapsed = (delta[0] + (delta[1] / NS_PER_SEC));
-
             self.log.debug({
-                elapsed: elapsed,
+                elapsed: elapsedSince(beginning),
                 err: err,
                 results: results
             }, 'Done processing files for storage zone.');
@@ -318,23 +314,24 @@ GarbageUploader.prototype.processDirtyStorageZone = function processDirtyStorage
 GarbageUploader.prototype.processDirtyStorageZones = function processDirtyStorageZones(callback) {
     var self = this;
 
-    var before;
+    var beginning;
 
     assert.func(callback, 'callback');
 
     self.log.debug({dirty: self.dirtyStorageZones}, 'Processing all "dirty" storage zones.');
 
-    before = process.hrtime();
+    beginning = process.hrtime();
 
     vasync.forEachParallel({
         func: self.processDirtyStorageZone.bind(self),
         inputs: Object.keys(self.dirtyStorageZones)
     }, function (err, results) {
-        var delta = process.hrtime(before);
-        var elapsed = (delta[0] + (delta[1] / NS_PER_SEC));
+        self.log.debug({
+            elapsed: elapsedSince(beginning),
+            err: err,
+            results: results
+        }, 'Processed files for all "dirty" storage zones.');
 
-        self.log.debug({elapsed: elapsed, err: err, results: results},
-            'Processed files for all "dirty" storage zones.');
         callback();
     });
 };
@@ -448,10 +445,10 @@ GarbageUploader.prototype.scanInstructionDirs = function scanInstructionDirs(cal
 
 
 function main() {
-    var before;
+    var beginning;
     var logger;
 
-    before = process.hrtime();
+    beginning = process.hrtime();
 
     vasync.pipeline({
         arg: {},
@@ -492,20 +489,23 @@ function main() {
                 // TODO: setup other metrics
 
                 metricsManager.listen(cb);
+
+                ctx.metricsManager = metricsManager;
             }, function _createUploader(ctx, cb) {
                 gu = new GarbageUploader({
                     config: ctx.config,
-                    log: logger
+                    log: logger,
+                    metricsManager: ctx.metricsManager
                 });
 
                 gu.start(cb);
             }
         ]
     }, function _doneMain(err) {
-        var delta = process.hrtime(before);
-        var elapsed = (delta[0] + (delta[1] / NS_PER_SEC));
-
-        logger.info({elapsed: elapsed, err: err}, 'Startup complete.');
+        logger.info({
+            elapsed: elapsedSince(beginning),
+            err: err
+        }, 'Startup complete.');
     });
 }
 

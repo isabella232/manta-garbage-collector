@@ -106,6 +106,6 @@ fi
 #
 # metricPorts are scraped by cmon-agent for prometheus metrics.
 #
-mdata-put metricPorts "3020"
+mdata-put metricPorts "8882,8883"
 
 manta_common_setup_end

@@ -67,14 +67,19 @@ var path = require('path');
 var util = require('util');
 
 var assert = require('assert-plus');
+var createMetricsManager = require('triton-metrics').createMetricsManager;
 var moray = require('moray');
+var restify = require('restify');
 var uuid = require('uuid/v4');
 var vasync = require('vasync');
 var verror = require('verror');
 var VError = verror.VError;
 
-// XXX rename this common before I die
-var common = require('../lib/common.new');
+var common = require('../lib/common');
+
+var elapsedSince = common.elapsedSince;
+var METRICS_SERVER_PORT = 8882;
+var SERVICE_NAME = 'garbage-dir-consumer';
 
 
 function GarbageDirConsumer(opts) {
@@ -87,7 +92,9 @@ function GarbageDirConsumer(opts) {
     self.config = opts.config;
     self.deleteQueue = {};
     self.log = opts.log;
+    self.metricsManager = opts.metricsManager;
     self.morayConfig = opts.morayConfig;
+    self.nextRunTimer = null;
     self.shard = opts.shard;
     self.stats = {
         deletedByShard: {}, // XXX
@@ -99,8 +106,11 @@ function GarbageDirConsumer(opts) {
     self.readBatchSize = self.config.options.record_read_batch_size || 666;
 }
 
-GarbageDirConsumer.prototype.start = function start(callback) {
+
+GarbageDirConsumer.prototype.start = function start() {
     var self = this;
+
+    var beginning = process.hrtime();
 
     self.log.info('Starting');
 
@@ -108,10 +118,16 @@ GarbageDirConsumer.prototype.start = function start(callback) {
 
     // XXX docs seem to say we shouldn't look at .on('error')?
 
+    //
+    // Unless we use the 'failFast' to the moray client, there is no error
+    // emitted. Only 'connect' once it's actually connected.
+    //
     self.client.once('connect', function () {
         var delay;
 
-        self.log.info('Connected to Moray');
+        self.log.info({
+            elapsed: elapsedSince(beginning)
+        }, 'Connected to Moray');
 
         // Pick a random offset between 0 and self.readBatchDelay for the first
         // run, in attempt to prevent all shards running at the same time.
@@ -119,45 +135,82 @@ GarbageDirConsumer.prototype.start = function start(callback) {
 
         self.log.info('Startup Complete. Will delay %d seconds before first read.', delay);
 
-        setTimeout(function _firstRun() {
+        self.nextRunTimer = setTimeout(function _firstRun() {
             self.run();
         }, delay * 1000);
     });
 };
 
+
+GarbageDirConsumer.prototype.stop = function stop() {
+    var self = this;
+
+    self.log.info('Stopping');
+
+    if (self.nextRunTimer !== null) {
+        clearTimeout(self.nextRunTimer);
+        self.nextRunTimer = null;
+    }
+};
+
+
 GarbageDirConsumer.prototype.run = function run() {
     var self = this;
 
-    self.log.info('run()');
+    var beginning = process.hrtime();
 
-    // TODO: add timers
+    self.log.info('Running Consumer.');
 
     vasync.pipeline({
         arg: {},
         funcs: [
             function _readBatch(ctx, cb) {
+                var readBegin = process.hrtime();
+
                 self.readGarbageBatch(function _onRead(err, results) {
-                    self.log.info({results: results}, 'readGarbageBatch() results');
+                    self.log.info({
+                        elapsed: elapsedSince(readBegin),
+                        err: err,
+                        results: results
+                    }, 'Finished reading garbage batch.');
                     ctx.results = results;
                     cb(err);
                 });
             }, function _writeBatch(ctx, cb) {
+                var writeBegin = process.hrtime();
+
                 self.writeGarbageInstructions({
                     records: ctx.results.records
                 }, function _onWrite(err, results) {
-                    self.log.info({results: results}, 'writeGarbageInstructions() results');
+                    self.log.info({
+                        elapsed: elapsedSince(writeBegin),
+                        err: err,
+                        results: results
+                    }, 'Finished writing garbage instructions.');
                     cb();
                 });
             }, function _deleteBatch(ctx, cb) {
+                var deleteBegin = process.hrtime();
+
                 self.deleteProcessedGarbage({
                     ids: ctx.results.ids,
                 }, function _onDelete(err, results) {
-                    self.log.info({results: results}, 'deleteProcessedGarbage() results');
+                    self.log.info({
+                        elapsed: elapsedSince(deleteBegin),
+                        err: err,
+                        results: results
+                    }, 'Finished deleting garbage from Moray.');
                     cb();
                 });
             }
         ]
     }, function _onPipeline(err) {
+
+        self.log.info({
+            elapsed: elapsedSince(beginning),
+            err: err
+        }, 'Run complete.');
+
         if (err) {
             self.log.error({err: err}, 'Had an error.');
             // XXX do we need to clear the results?
@@ -165,16 +218,18 @@ GarbageDirConsumer.prototype.run = function run() {
 
         // Schedule next run.
         self.log.info('Will run again in %d seconds.', self.readBatchDelay);
-        setTimeout(function _firstRun() {
+
+        self.nextRunTimer = setTimeout(function _nextRun() {
             self.run();
         }, self.readBatchDelay * 1000);
     });
 };
 
-// TODO: add a timer
+
 GarbageDirConsumer.prototype.readGarbageBatch = function readGarbageBatch(callback) {
     var self = this;
 
+    var beginning = process.hrtime();
     var counters = {
         totalBytes: 0,
         totalBytesWithCopies: 0,
@@ -182,23 +237,17 @@ GarbageDirConsumer.prototype.readGarbageBatch = function readGarbageBatch(callba
         totalObjectsByCopies: {},
         totalObjectsWithCopies: 0
     };
-
     var findOpts = {};
     var ids = [];
     var records = {};
     var req;
+    var timeToFirstRecord;
 
     findOpts.limit = self.readBatchSize;
     findOpts.sort = {
         attribute: '_id',
         order: 'ASC'
     };
-
-    // TODO:
-    //
-    //  add timer to first 'record'
-    //  add timer for whole batch "read"
-
 
     // TODO: assert that records is empty? We shouldn't have any because either
     // we just started, or previous loop should have cleared.
@@ -208,10 +257,15 @@ GarbageDirConsumer.prototype.readGarbageBatch = function readGarbageBatch(callba
     req = self.client.findObjects(common.FASTDELETE_BUCKET, '(_id>=0)', findOpts);
 
     req.once('error', function (err) {
-        self.log.info({err: err}, 'error');
+        self.log.error({
+            elapsed: elapsedSince(beginning),
+            err: err,
+            timeToFirstRecord: timeToFirstRecord
+        }, 'Error reading garbage batch.');
 
         if (common.isMorayOverloaded(err)) {
-            self.log.info('moray is overloaded, we should back off');
+            // XXX
+            self.log.info('XXX Moray is overloaded, we should back off.');
         }
 
         callback(err);
@@ -221,6 +275,10 @@ GarbageDirConsumer.prototype.readGarbageBatch = function readGarbageBatch(callba
         var idx;
         var storageId;
         var value = obj.value;
+
+        if (timeToFirstRecord === undefined) {
+            timeToFirstRecord = elapsedSince(beginning);
+        }
 
         // XXX verify obj is a good obj
         //     assert value.type === 'object'?
@@ -245,7 +303,6 @@ GarbageDirConsumer.prototype.readGarbageBatch = function readGarbageBatch(callba
 
             // XXX explain and make sure the creator || owner stuff is correctly
             // matching what we did before.
-            //
 
             storageId = value.sharks[idx].manta_storage_id;
 
@@ -272,19 +329,27 @@ GarbageDirConsumer.prototype.readGarbageBatch = function readGarbageBatch(callba
     });
 
     req.on('end', function () {
+        self.log.debug({
+            elapsed: elapsedSince(beginning),
+            timeToFirstRecord: timeToFirstRecord
+        }, 'Done reading garbage batch.');
+
         callback(null, {
             ids: ids,
             records: records
         });
     });
-}
+};
+
 
 GarbageDirConsumer.prototype.writeGarbageInstructions = function writeGarbageInstructions(opts, callback) {
     var self = this;
 
     assert.object(opts, 'opts');
-    //assert.object(opts.records, 'opts.records');
-    //
+    // XXX assert.object(opts.records, 'opts.records');
+
+    var beginning = process.hrtime();
+    var filesWritten = 0;
 
     vasync.forEachPipeline({
         func: function _writeGarbageInstruction(storageId, cb) {
@@ -304,6 +369,9 @@ GarbageDirConsumer.prototype.writeGarbageInstructions = function writeGarbageIns
             filenameFinal = path.join(dirnameFinal, filename);
             filenameTemp = path.join(dirnameTemp, filename);
 
+            // XXX should we limit the number of instructions here, or is the
+            // limit because of the gathering good enough?
+
             // Build the actual "instructions" content from the records
             for (idx = 0; idx < opts.records[storageId].length; idx++) {
                 record = opts.records[storageId][idx];
@@ -318,7 +386,13 @@ GarbageDirConsumer.prototype.writeGarbageInstructions = function writeGarbageIns
                 );
             }
 
-            self.log.info({data: data, dirnameTemp: dirnameTemp, dirnameFinal: dirnameFinal, records: opts.records[storageId], storageId: storageId}, 'Write Garbage');
+            self.log.trace({
+                data: data,
+                dirnameTemp: dirnameTemp,
+                dirnameFinal: dirnameFinal,
+                records: opts.records[storageId],
+                storageId: storageId
+            }, 'Writing Instructions.');
 
             vasync.pipeline({
                 funcs: [
@@ -345,13 +419,22 @@ GarbageDirConsumer.prototype.writeGarbageInstructions = function writeGarbageIns
                     }
                 ]
             }, function _writeFilePipeline(err) {
-                self.log.info({filename: filenameFinal}, 'wrote file');
+                self.log.debug({
+                    err: err,
+                    filename: filenameFinal
+                }, 'Wrote file.');
+
+                filesWritten++;
                 cb(err);
             });
         },
         inputs: Object.keys(opts.records)
     }, function _pipelineComplete(err) {
-        self.log.info({err: err}, 'wrote files');
+        self.log.info({
+            elapsed: elapsedSince(beginning),
+            err: err,
+            filesWritten: filesWritten
+        }, 'Wrote instruction files.');
         callback(null, {});
     });
 };
@@ -360,6 +443,7 @@ GarbageDirConsumer.prototype.writeGarbageInstructions = function writeGarbageIns
 GarbageDirConsumer.prototype.deleteProcessedGarbage = function deleteProcessedGarbage(opts, callback) {
     var self = this;
 
+    var beginning = process.hrtime();
     // Thanks LDAP!
     var filter = '';
     var idx;
@@ -384,40 +468,63 @@ GarbageDirConsumer.prototype.deleteProcessedGarbage = function deleteProcessedGa
     self.log.debug({ids: opts.ids, filter: filter}, 'Deleting processed _ids.');
 
     self.client.deleteMany(common.FASTDELETE_BUCKET, filter, function _onDelete(err) {
-        self.log.info({err: err}, 'deleteMany error');
+        self.log.debug({
+            elapsed: elapsedSince(beginning),
+            err: err
+        }, 'Did deleteMany.');
+
         callback(err);
     });
 };
 
 
-// TODO setup metrics
-
 function main() {
+    var beginning;
     var logger;
+
+    beginning = process.hrtime();
 
     vasync.pipeline({
         arg: {},
         funcs: [
-            function _createLogger(ctx, cb) {
-                logger = ctx.log = common.createLogger({
-                    name: 'garbage-dir-consumer'
+            function _createLogger(_, cb) {
+                logger = common.createLogger({
+                    level: 'trace', // XXX temporary
+                    name: SERVICE_NAME
                 });
 
                 cb();
             }, function _loadConfig(ctx, cb) {
-                common.loadConfig({log: ctx.log}, function _onConfig(err, cfg) {
+                common.loadConfig({log: logger}, function _onConfig(err, cfg) {
                     if (!err) {
                         ctx.config = cfg;
                     }
-                    logger.info({cfg: cfg}, 'CFG');
                     cb(err);
                 });
             }, function _validateConfig(ctx, cb) {
-                // ctx.log.info({ctx: ctx}, 'would validate config');
                 common.validateConfig(ctx.config, function _onValidated(err, res) {
-                    // XXX wtf
                     cb(err);
                 });
+            }, function _setupMetrics(ctx, cb) {
+                var metricsManager = createMetricsManager({
+                    address: ctx.config.admin_ip,
+                    log: logger,
+                    staticLabels: {
+                        datacenter: ctx.config.datacenter,
+                        instance: ctx.config.instance,
+                        server: ctx.config.server_uuid,
+                        service: SERVICE_NAME
+                    },
+                    port: METRICS_SERVER_PORT,
+                    restify: restify
+                });
+                metricsManager.createNodejsMetrics();
+
+                // TODO: setup other metrics
+
+                metricsManager.listen(cb);
+
+                ctx.metricsManager = metricsManager;
             }, function _createDirConsumer(ctx, cb) {
                 var childLog;
                 var idx;
@@ -431,7 +538,7 @@ function main() {
                 for (idx = 0; idx < ctx.config.shards.length; idx++) {
                     shard = ctx.config.shards[idx].host;
 
-                    childLog = ctx.log.child({
+                    childLog = logger.child({
                         component: 'GarbageDirConsumer',
                         shard: shard
                     }),
@@ -439,8 +546,9 @@ function main() {
                     gdc = new GarbageDirConsumer({
                         config: ctx.config,
                         log: childLog,
+                        metricsManager: ctx.metricsManager,
                         morayConfig: common.getMorayConfig({
-                            collector: undefined, // XXX replace with collector
+                            collector: ctx.metricsManager.collector,
                             config: ctx.config,
                             log: childLog,
                             morayShard: shard
@@ -455,8 +563,12 @@ function main() {
             }
         ]
     }, function _doneMain(err) {
-        logger.info('startup complete');
+        logger.info({
+            elapsed: elapsedSince(beginning),
+            err: err
+        }, 'Startup complete.');
     });
 }
+
 
 main();
