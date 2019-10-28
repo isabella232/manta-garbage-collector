@@ -65,8 +65,8 @@ install: $(NODE_EXEC) $(STAMP_NODE_MODULES)
 	    $(ROOT)/tools \
 	    $(PROTO)$(PREFIX)/
 	mkdir -p $(PROTO)$(PREFIX)/scripts
-	cp deps/manta-scripts/*.sh $(PROTO)$(PREFIX)/scripts/
-	cp scripts/*.sh $(PROTO)$(PREFIX)/scripts/
+	cp $(ROOT)/deps/manta-scripts/*.sh $(PROTO)$(PREFIX)/scripts/
+	cp $(ROOT)/boot/*.sh $(PROTO)$(PREFIX)/scripts/
 	(cd $(PROTO)$(PREFIX)/../boot && ln -s ../{setup,configure}.sh .)
 
 .PHONY: release
