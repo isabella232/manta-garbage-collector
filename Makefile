@@ -14,13 +14,14 @@
 
 NAME := mantav2v2-garbage-collector
 
-NODE_PREBUILT_TAG = zone64
-NODE_PREBUILT_VERSION = v6.17.0
-NODE_PREBUILT_IMAGE = c2c31b00-1d60-11e9-9a77-ff9f06554b0f
-
 PROTO = proto
 PREFIX = /opt/smartdc/$(NAME)
 ROOT := $(shell pwd)
+
+NODE_PREBUILT_TAG = zone64
+NODE_PREBUILT_VERSION = v6.17.0
+NODE_PREBUILT_IMAGE = c2c31b00-1d60-11e9-9a77-ff9f06554b0f
+NODE_MODULES_OK = $(PREFIX)/node_modules/.ok
 
 CLEAN_FILES += $(PROTO)
 
@@ -53,18 +54,20 @@ test:
 	echo "success"
 
 .PHONY: install
-install: $(NODE_EXEC) $(INSTALL_FILES)
+install: $(NODE_EXEC) $(NODE_MODULES_OK)
 	mkdir -p $(PROTO)$(PREFIX)
 	mkdir -p $(PROTO)$(PREFIX)/../boot
 	cp -r $(ROOT)/lib \
-		$(ROOT)/build \
-		$(ROOT)/node_modules \
-		$(ROOT)/package.json \
-		$(ROOT)/sapi_manifests \
-		$(ROOT)/scripts \
-		$(ROOT)/smf \
-		$(ROOT)/tools \
-		$(PROTO)$(PREFIX)/
+	    $(ROOT)/build \
+	    $(ROOT)/node_modules \
+	    $(ROOT)/package.json \
+	    $(ROOT)/sapi_manifests \
+	    $(ROOT)/smf \
+	    $(ROOT)/tools \
+	    $(PROTO)$(PREFIX)/
+	mkdir -p $(PROTO)$(PREFIX)/scripts
+	cp deps/manta-scripts/*.sh $(PROTO)$(PREFIX)/scripts/
+	cp scripts/*.sh $(PROTO)$(PREFIX)/scripts/
 	(cd $(PROTO)$(PREFIX)/../boot && ln -s ../{setup,configure}.sh .)
 
 .PHONY: release
