@@ -14,14 +14,13 @@
 
 NAME := mantav2v2-garbage-collector
 
-PROTO = proto
-PREFIX = /opt/smartdc/$(NAME)
-ROOT := $(shell pwd)
-
 NODE_PREBUILT_TAG = zone64
 NODE_PREBUILT_VERSION = v6.17.0
 NODE_PREBUILT_IMAGE = c2c31b00-1d60-11e9-9a77-ff9f06554b0f
-NODE_MODULES_OK = $(PREFIX)/node_modules/.ok
+
+PROTO = proto
+PREFIX = /opt/smartdc/$(NAME)
+ROOT := $(shell pwd)
 
 CLEAN_FILES += $(PROTO)
 
@@ -54,7 +53,7 @@ test:
 	echo "success"
 
 .PHONY: install
-install: $(NODE_EXEC) $(NODE_MODULES_OK)
+install: $(NODE_EXEC) $(STAMP_NODE_MODULES)
 	mkdir -p $(PROTO)$(PREFIX)
 	mkdir -p $(PROTO)$(PREFIX)/../boot
 	cp -r $(ROOT)/lib \
