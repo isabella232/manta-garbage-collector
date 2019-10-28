@@ -96,12 +96,19 @@ fi
 
 
 #
-# Import the garbage-collector SMF service.  The manifest file creates the service
-# enabled by default.
+# Import the garbage-collector SMF services. The manifest files create the
+# services enabled by default.
 #
-if ! svccfg import "/opt/smartdc/$NAME/smf/manifests/garbage-collector.xml"; then
-    fatal 'could not import garbage-collector SMF service'
-fi
+for svc in \
+    garbage-dir-consumer \
+    garbage-uploader \
+    ; do
+
+    if ! svccfg import "/opt/smartdc/$NAME/smf/manifests/${svc}.xml"; then
+        fatal "Could not import ${svc} SMF service."
+    fi
+done
+
 
 #
 # metricPorts are scraped by cmon-agent for prometheus metrics.
