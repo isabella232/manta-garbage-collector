@@ -1,5 +1,7 @@
 # Basic Functionality Demo
 
+XXX 2019-10-28 A lot of this is no longer relevant for Manta v2. Needs to be rewritten.
+
 This demo assumes that a reasonably up-to-date Manta deployment. It will cover
 the intended usage of the garbage-collector. This includes:
 
