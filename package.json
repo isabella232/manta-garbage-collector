@@ -10,6 +10,7 @@
   "license": "MPL-2.0",
   "dependencies": {
     "assert-plus": "1.0.0",
+    "boray": "git+https://github.com/joyent/node-buckets-mdapi.git#v0.1.0",
     "bunyan": "1.8.12",
     "forkexec": "1.1.0",
     "jsprim": "2.0.0",
