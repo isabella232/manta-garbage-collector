@@ -1,4 +1,13 @@
 {
+    "buckets_mdapi": {
+        "options": {
+            "cueballOptions": {
+                "resolvers": [
+                    "nameservice.{{{DOMAIN_NAME}}}"
+                ]
+            }
+        }
+    },
     "moray": {
         "options": {
             "cueballOptions": {
@@ -8,7 +17,12 @@
             }
         }
     },
-    "shards": [{{#GC_ASSIGNED_SHARDS}}
+    "buckets_shards": [{{#GC_ASSIGNED_BUCKETS_SHARDS}}
+        {
+            "host": "{{host}}"
+        }{{^last}},{{/last}}{{/GC_ASSIGNED_BUCKETS_SHARDS}}
+    ],
+    "dir_shards": [{{#GC_ASSIGNED_SHARDS}}
         {
             "host": "{{host}}"
         }{{^last}},{{/last}}{{/GC_ASSIGNED_SHARDS}}

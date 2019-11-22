@@ -100,6 +100,7 @@ fi
 # services enabled by default.
 #
 for svc in \
+    garbage-buckets-consumer \
     garbage-dir-consumer \
     garbage-uploader \
     ; do
@@ -113,6 +114,6 @@ done
 #
 # metricPorts are scraped by cmon-agent for prometheus metrics.
 #
-mdata-put metricPorts "8882,8883"
+mdata-put metricPorts "8881,8882,8883"
 
 manta_common_setup_end
