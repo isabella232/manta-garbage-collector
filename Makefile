@@ -12,7 +12,7 @@
 # Makefile: Manta Fast Garbage Collection System
 #
 
-NAME := mantav2v2-garbage-collector
+NAME := mantav2-garbage-collector
 
 NODE_PREBUILT_TAG = zone64
 NODE_PREBUILT_VERSION = v6.17.0
