@@ -12,7 +12,7 @@
 # Makefile: Manta Fast Garbage Collection System
 #
 
-NAME := mantav2-garbage-collector
+NAME := manta-garbage-collector
 
 NODE_PREBUILT_TAG = zone64
 NODE_PREBUILT_VERSION = v6.17.0
@@ -40,7 +40,7 @@ include ./deps/eng/tools/mk/Makefile.smf.defs
 #
 # our base image is triton-origin-x86_64-18.4.0
 BASE_IMAGE_UUID = a9368831-958e-432d-a031-f8ce6768d190
-BUILDIMAGE_NAME = $(NAME)
+BUILDIMAGE_NAME = mantav2-garbage-collector
 BUILDIMAGE_DESC = Manta Garbage Collector
 AGENTS = amon config registrar
 
