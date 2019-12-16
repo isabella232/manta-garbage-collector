@@ -3,7 +3,11 @@
 # Copyright 2019 Joyent, Inc.
 #
 #
-# This program runs against a manatee VM and:
+# This program runs against a manatee VM
+#
+#   snaplink-sherlock.sh <manatee VM UUID>
+#
+# and:
 #
 #  * creates a temporary (surrogate) VM
 #  * takes the latest manatee (zfs) snapshot and clones it
@@ -14,17 +18,21 @@
 #      * feeds the stream through a program that pulls out only SnapLinks
 #      * writes a JSON line for every snaplink to a dump file (gzip compressed)
 #      * reports the total number of lines, objects and SnapLinks seen
-#  * reports waits for completion of user-script
+#  * waits for completion of user-script
+#  * outputs a summary of the results
 #
 # Once the program is complete, the resulting dump file can be collected and the
 # zone should be deleted (otherwise it will be holding a reference to the
-# snapshot through its cloned dataset).
+# manatee's zfs snapshot through its cloned dataset).
 #
-
+# On any unexpected error it will exit prematurely.
+#
 
 set -o errexit
 set -o pipefail
 
+SURROGATE_CPU_CAP=400
+SURROGATE_QUOTA=100
 TARGET=$1
 
 function fatal {
@@ -34,7 +42,17 @@ function fatal {
 
 [[ -n ${TARGET} ]] || fatal "Usage: $0 <vm UUID>"
 
-echo "Target is ${TARGET}..."
+xtrace_log="/tmp/snaplink-sherlock.$(date -u +%Y%m%dT%H%M%S).xtrace.log"
+echo "Writing xtrace output to: ${xtrace_log}"
+exec 4>>$xtrace_log
+BASH_XTRACEFD=4
+set -o xtrace
+
+targetAlias=$(vmadm get ${TARGET} | json -H alias)
+[[ ${targetAlias} =~ ^[0-9]+\.postgres\. ]] || fatal "VM '${targetAlias}' does not look like a Manta manatee zone."
+shard=$(cut -d'.' -f1 <<<${targetAlias})
+
+echo "Target is ${TARGET} (shard ${shard})..."
 
 shortId=$(cut -d'-' -f1 <<<${TARGET})
 vmJson=$(vmadm get ${TARGET})
@@ -63,6 +81,7 @@ export PATH=/usr/local/sbin:/usr/local/bin:/opt/local/sbin:/opt/local/bin:/usr/s
 svccfg delete svc:/network/physical:default
 hostname $(mdata-get sdc:alias)
 
+morayShard=$(mdata-get morayShard)
 dataDir=/zones/$(zonename)/data
 pgVersion=$(json current < ${dataDir}/manatee-config.json)
 groupadd -g 907 postgres && useradd -u 907 -g postgres postgres
@@ -135,9 +154,9 @@ EOFILTER
 
 (time /opt/postgresql/${pgVersion}/bin/pg_dump -Fp -a -U postgres -t manta moray \
     | /usr/node/bin/node /tmp/filter.$$.js \
-    | gzip > /root/manta.dump.gz) 2>/root/manta.dump.stderr
+    | gzip > /root/${morayShard}.manta_dump.gz) 2>/root/manta_dump.stderr
 
-echo "DONE" > /root/manta.dump.done
+echo "DONE" > /root/manta_dump.done
 
 (sleep 2; halt -q) &
 
@@ -151,7 +170,10 @@ EOF
     "autoboot": false,
     "billing_id": "00000000-0000-0000-0000-000000000000",
     "brand": "joyent-minimal",
-    "cpu_cap": 400,
+    "cpu_cap": ${SURROGATE_CPU_CAP},
+    "customer_metadata": {
+        "morayShard": "${shard}.moray"
+    },
     "delegate_dataset": true,
     "do_not_inventory": true,
     "firewall_enabled": false,
@@ -160,8 +182,9 @@ EOF
     "max_lwps": 256000,
     "max_physical_memory": ${maxPhys},
     "max_swap": ${maxSwap},
+    "mdata_exec_timeout": 0,
     "owner_uuid": "4d649f41-cf87-ca1d-c2c0-bb6a9004311d",
-    "quota": 100,
+    "quota": ${SURROGATE_QUOTA},
     "tmpfs": ${maxPhys},
     "uuid": "${newVmUuid}",
     "zfs_io_priority": 100
@@ -191,13 +214,13 @@ vmadm start ${newVmUuid}
 zoneRoot="/zones/${newVmUuid}/root"
 
 echo "Waiting for user-script to complete..."
-while [[ ! -f ${zoneRoot}/root/manta.dump.done ]]; do
+while [[ ! -f ${zoneRoot}/root/manta_dump.done ]]; do
     sleep 1
 done
 
 echo "Completed execution. Results:"
 
-cat ${zoneRoot}/root/manta.dump.stderr
-ls -l ${zoneRoot}/root/manta.dump.gz
+cat ${zoneRoot}/root/manta_dump.stderr
+ls -l ${zoneRoot}/root/
 
 echo "When you're done, do: vmadm delete ${newVmUuid}"
