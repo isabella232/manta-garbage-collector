@@ -26,10 +26,6 @@
         {
             "host": "{{host}}"
         }{{^last}},{{/last}}{{/GC_ASSIGNED_SHARDS}}
-        {{^GC_ASSIGNED_SHARDS}}
-        {{GC_SHARD_NUM_LO}},
-        {{GC_SHARD_NUM_HI}}
-        {{/GC_ASSIGNED_SHARDS}}
     ],
     "options": {
         "record_read_batch_size": {{GC_RECORD_READ_BATCH_SIZE}},
