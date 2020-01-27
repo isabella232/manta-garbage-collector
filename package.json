@@ -18,6 +18,7 @@
     "moray": "3.5.0",
     "restify": "4.3.4",
     "restify-clients": "2.6.6",
+    "@smaller/tap": "11.1.4-1.0.0",
     "triton-metrics": "1.0.2",
     "uuid": "3.3.2",
     "vasync": "2.2.0",
