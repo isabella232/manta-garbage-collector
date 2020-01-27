@@ -1,6 +1,6 @@
 #!/usr/node/bin/node
 /*
- * Copyright 2019 Joyent, Inc.
+ * Copyright 2020 Joyent, Inc.
  *
  * Note: This assumes the number of SnapLinks is small enough that we'll not run
  * out of memory building a mapping. If there are many millions, you might need

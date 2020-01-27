@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2019 Joyent, Inc.
+# Copyright 2020 Joyent, Inc.
 #
 # This attempts to find the async peer for each manatee shard in this DC.
 #

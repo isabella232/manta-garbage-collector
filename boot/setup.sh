@@ -6,7 +6,7 @@
 #
 
 #
-# Copyright 2019 Joyent, Inc.
+# Copyright 2020 Joyent, Inc.
 #
 
 printf '==> setup.sh @ %s\n' "$(date -u +%FT%TZ)"
