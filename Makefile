@@ -5,7 +5,7 @@
 #
 
 #
-# Copyright 2019 Joyent, Inc.
+# Copyright 2020 Joyent, Inc.
 #
 
 #
@@ -54,6 +54,7 @@ test:
 
 .PHONY: install
 install: $(NODE_EXEC) $(STAMP_NODE_MODULES)
+	@$(ROOT)/build/node/bin/node ./node_modules/.bin/kthxbai
 	mkdir -p $(PROTO)$(PREFIX)
 	mkdir -p $(PROTO)$(PREFIX)/../boot
 	cp -r $(ROOT)/lib \
