@@ -42,6 +42,7 @@ include ./deps/eng/tools/mk/Makefile.smf.defs
 BASE_IMAGE_UUID = a9368831-958e-432d-a031-f8ce6768d190
 BUILDIMAGE_NAME = mantav2-garbage-collector
 BUILDIMAGE_DESC = Manta Garbage Collector
+BUILDIMAGE_PKGSRC = nginx-1.14.2
 AGENTS = amon config registrar
 
 .PHONY: all
