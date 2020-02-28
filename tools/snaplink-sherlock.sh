@@ -184,7 +184,7 @@ EOF
     "max_physical_memory": ${maxPhys},
     "max_swap": ${maxSwap},
     "mdata_exec_timeout": 0,
-    "owner_uuid": "4d649f41-cf87-ca1d-c2c0-bb6a9004311d",
+    "owner_uuid": "00000000-0000-0000-0000-000000000000",
     "quota": ${SURROGATE_QUOTA},
     "tmpfs": ${maxPhys},
     "uuid": "${newVmUuid}",
