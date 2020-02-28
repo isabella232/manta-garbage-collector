@@ -10,7 +10,7 @@
 # and:
 #
 #  * creates a temporary (surrogate) VM
-#  * takes the latest manatee (zfs) snapshot and clones it
+#  * creates a new manatee (zfs) snapshot and clones it
 #  * attaches the cloned dataset as the delegated dataset for the surrogate VM
 #  * installs a user-script which runs on startup and:
 #      * starts postgresql
@@ -20,10 +20,11 @@
 #      * reports the total number of lines, objects and SnapLinks seen
 #  * waits for completion of user-script
 #  * outputs a summary of the results
+#  * copies the result files to the $PWD
 #
 # Once the program is complete, the resulting dump file can be collected and the
-# zone should be deleted (otherwise it will be holding a reference to the
-# manatee's zfs snapshot through its cloned dataset).
+# both the zone and snapshot should be deleted (otherwise they will be holding a
+# reference to the manatee's zfs filesystem).
 #
 # On any unexpected error it will exit prematurely.
 #
@@ -94,7 +95,7 @@ while ! /opt/postgresql/${pgVersion}/bin/psql -U postgres -c 'SELECT now();' mor
     sleep 5
 done
 
-cat > /tmp/filter.$$.js <<'EOFILTER'
+cat > /var/tmp/filter.$$.js <<'EOFILTER'
 var assert = require('assert');
 var readline = require('readline');
 var util = require('util');
@@ -153,7 +154,7 @@ lineReader.on('line', function _onLine(rawLine) {
 EOFILTER
 
 (time /opt/postgresql/${pgVersion}/bin/pg_dump -Fp -a -U postgres -t manta moray \
-    | /usr/node/bin/node /tmp/filter.$$.js \
+    | /usr/node/bin/node /var/tmp/filter.$$.js \
     | gzip > /root/${morayShard}.manta_dump.gz) 2>/root/manta_dump.stderr
 
 echo "DONE" > /root/manta_dump.done
@@ -197,16 +198,18 @@ echo "Surrogate VM is ${newVmUuid}"
 
 zfs destroy zones/${newVmUuid}/data
 
-latestSnapshotInfo=$(zfs list -Hpo creation,name -t snapshot | grep zones/${TARGET}/data/manatee | sort -n | tail -1)
-latestSnapshot=$(awk '{ print $2 }' <<<${latestSnapshotInfo})
-latestSnapshotTime=$(awk '{ print $1 }' <<<${latestSnapshotInfo})
-latestSnapshotTimeIso=$(/usr/node/bin/node -e "console.log(new Date(${latestSnapshotTime}000).toISOString());")
+newSnapshotName="zones/${TARGET}/data/manatee@sherlock-$$"
+echo "Creating snapshot ${newSnapshotName}..."
+zfs snapshot zones/${TARGET}/data/manatee@sherlock-$$
+
+newSnapshotTime=$(zfs get -Hpo value creation ${newSnapshotName})
+newSnapshotTimeIso=$(/usr/node/bin/node -e "console.log(new Date(${newSnapshotTime}000).toISOString());")
 currentTimeIso=$(/usr/node/bin/node -e "console.log(new Date().toISOString());")
 
 echo "Current timestamp is -- ${currentTimeIso}."
-echo "Attaching snapshot from ${latestSnapshotTimeIso}..."
+echo "Attaching snapshot from ${newSnapshotTimeIso}..."
 
-zfs clone ${latestSnapshot} zones/${newVmUuid}/data
+zfs clone ${newSnapshotName} zones/${newVmUuid}/data
 
 echo "Starting Surrogate VM..."
 vmadm start ${newVmUuid}
@@ -223,4 +226,15 @@ echo "Completed execution. Results:"
 cat ${zoneRoot}/root/manta_dump.stderr
 ls -l ${zoneRoot}/root/
 
-echo "When you're done, do: vmadm delete ${newVmUuid}"
+echo ""
+echo "Copying files to PWD ($PWD)"
+for file in $(find $zoneRoot/root/ -maxdepth 1 -type f -not -name "\.*"); do
+    filename=$(basename ${file})
+    echo " - ${file} => ${newVmUuid}.${filename}"
+    cp ${file} ${newVmUuid}.${filename}
+done
+echo ""
+
+echo "When you're convinced this ran correctly, it is important that you do:"
+echo "  - vmadm delete ${newVmUuid}"
+echo "  - zfs destroy ${newSnapshotName}"
