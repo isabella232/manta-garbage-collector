@@ -17,6 +17,7 @@ NAME := manta-garbage-collector
 NODE_PREBUILT_TAG = zone64
 NODE_PREBUILT_VERSION = v6.17.0
 NODE_PREBUILT_IMAGE = c2c31b00-1d60-11e9-9a77-ff9f06554b0f
+NPM_ENV = NODE_ENV=production
 
 PROTO = proto
 PREFIX = /opt/smartdc/$(NAME)
@@ -49,10 +50,6 @@ AGENTS = amon config registrar
 .PHONY: all
 all: $(STAMP_NODE_PREBUILT) $(STAMP_NODE_MODULES) install
 	$(NODE) --version
-
-.PHONY: test
-test:
-	echo "success"
 
 .PHONY: install
 install: $(NODE_EXEC) $(STAMP_NODE_MODULES)
@@ -98,6 +95,14 @@ lint: | $(ESLINT)
 .PHONY: fmt
 fmt: | $(ESLINT)
 	$(ESLINT) --fix $(ESLINT_FILES)
+
+.PHONY: test
+test:
+	@echo "To run tests, run:"
+	@echo ""
+	@echo "    ./bin/node test/*.test.js"
+	@echo ""
+	@echo "from the /opt/smartdc/manta-garbage-collector directory on a garbage-collector instance."
 
 
 include ./deps/eng/tools/mk/Makefile.deps
