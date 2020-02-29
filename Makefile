@@ -23,6 +23,7 @@ PREFIX = /opt/smartdc/$(NAME)
 ROOT := $(shell pwd)
 
 CLEAN_FILES += $(PROTO)
+ESLINT_FILES := $(shell find bin lib test -name '*.js')
 
 RELEASE_TARBALL = $(NAME)-pkg-$(STAMP).tar.gz
 
@@ -42,7 +43,7 @@ include ./deps/eng/tools/mk/Makefile.smf.defs
 BASE_IMAGE_UUID = a9368831-958e-432d-a031-f8ce6768d190
 BUILDIMAGE_NAME = mantav2-garbage-collector
 BUILDIMAGE_DESC = Manta Garbage Collector
-BUILDIMAGE_PKGSRC = nginx-1.14.2
+BUILDIMAGE_PKGSRC = nginx-1.14.2 # used by tests to approximate mako
 AGENTS = amon config registrar
 
 .PHONY: all
@@ -58,14 +59,14 @@ install: $(NODE_EXEC) $(STAMP_NODE_MODULES)
 	@$(ROOT)/build/node/bin/node ./node_modules/.bin/kthxbai
 	mkdir -p $(PROTO)$(PREFIX)
 	mkdir -p $(PROTO)$(PREFIX)/../boot
-	cp -r $(ROOT)/lib \
+	cp -r $(ROOT)/bin \
+	    $(ROOT)/lib \
 	    $(ROOT)/node_modules \
 	    $(ROOT)/package.json \
 	    $(ROOT)/sapi_manifests \
 	    $(ROOT)/smf \
 	    $(ROOT)/tools \
 	    $(PROTO)$(PREFIX)/
-	mkdir -p $(PROTO)$(PREFIX)/bin
 	cp $(ROOT)/build/node/bin/node $(PROTO)$(PREFIX)/bin/
 	chmod 755 $(PROTO)$(PREFIX)/bin/node
 	mkdir -p $(PROTO)$(PREFIX)/scripts
@@ -88,6 +89,15 @@ publish: release
 	cp $(RELEASE_TARBALL) $(ENGBLD_BITS_DIR)/$(NAME)/$(RELEASE_TARBALL)
 
 check:: $(NODE_EXEC)
+
+# Just lint check (no style)
+.PHONY: lint
+lint: | $(ESLINT)
+	$(ESLINT) --rule 'prettier/prettier: off' $(ESLINT_FILES)
+
+.PHONY: fmt
+fmt: | $(ESLINT)
+	$(ESLINT) --fix $(ESLINT_FILES)
 
 
 include ./deps/eng/tools/mk/Makefile.deps

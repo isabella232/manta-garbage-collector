@@ -20,7 +20,7 @@
             <service_fmri value="svc:/milestone/multi-user:default" />
         </dependency>
 
-        <exec_method type="method" name="start" timeout_seconds="10" exec="/opt/smartdc/manta-garbage-collector/bin/node --abort-on-uncaught-exception /opt/smartdc/manta-garbage-collector/lib/garbage-uploader.js &amp;">
+        <exec_method type="method" name="start" timeout_seconds="10" exec="/opt/smartdc/manta-garbage-collector/bin/node --abort-on-uncaught-exception /opt/smartdc/manta-garbage-collector/bin/garbage-uploader.js &amp;">
             <method_context>
                 <method_environment>
                     <envvar name="HOME" value="/root" />
