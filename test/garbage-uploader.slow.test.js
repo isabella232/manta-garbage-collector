@@ -10,12 +10,16 @@
 
 /*
  * This file contains tests for the `garbage-uploader` which require actual
- * filesystem calls and talking to an nginx instance.
+ * filesystem calls and talking to an nginx instance (which we'll create).
  *
  * Ideas for further testing:
  *
  *  - Test that mako being down and coming back does the right thing
  *  - Test that adding new mako to collection works
+ *  - Test what happens when unlink fails after sending instruction file
+ *  - Test all known failure modes for PUT, and ensure handled as expected
+ *  - Test how many instructions we can PUT per minute?
+ *  - Test what happens when we're out of space (locally and remotely)
  *
  */
 var child_process = require('child_process');
@@ -61,22 +65,6 @@ var NGINXES = {
     }
 };
 
-/*
-setup: build configs, start nginx on 2 ports
-
-tests:
-   - add a 3rd mako, make sure it is able to receive files (to test that we're not relying only on startup state)
-   - test what happens when unlink fails after sending instruction file
-   - test all known failure modes for PUT, and ensure handled as expected
-   - test timeouts?
-   - test how many instructions we can PUT per minute?
-
-- XXX for writers:
-    - test that running out of space works
-
-teardown: stop nginxes
-*/
-
 var logs = {
     debug: [],
     error: [],
@@ -118,8 +106,6 @@ function _createNginxConfig(nginx) {
     var lines;
     var listenPort = config.port;
     var mantaDir = config.mantaPath;
-    // var mimeFilename = path.join(baseDir, 'mime.types');
-    // var mimeTypes = 'types {\n    text/plain                            txt;\n}\n';
 
     lines = [
         'daemon off;',
@@ -361,7 +347,6 @@ test('create GarbageUploader', function _testCreateUploader(t) {
     }
 
     uploader = new GarbageUploader({
-        // TODO: nginx info
         instructionRoot: TEST_DIR_INSTRUCTIONS,
         log: logger,
         _putFileHook: _putFileHook,
@@ -606,25 +591,6 @@ test('check metrics', function _testMetrics(t) {
 
     var metrics = uploader.metrics;
 
-    console.dir(metrics);
-
-    /*
-
-{ instrFileInvalidCountTotal: 0,
-  instrFileUploadAttemptCountTotal: 3,
-  instrFileUploadErrorCountTotal: 1,
-  instrFileUploadSecondsTotal: 10.037825376999999,
-  instrFileUploadSuccessCountTotal: 2,
-  instrFileDeleteCountTotal: 2,
-  instrFileDeleteErrorCountTotal: 0,
-  watchedDirectoryCount: 3,
-  runCountTotal: 14,
-  runErrorCountTotal: 0,
-  runSecondsTotal: 10.146941051 }
-
-  */
-
-    /*
     function tGreater(metric, compare) {
         if (typeof(compare) === 'number') {
             t.ok(metrics[metric] > compare, metric + '(' + metrics[metric] +
@@ -638,27 +604,27 @@ test('check metrics', function _testMetrics(t) {
         }
     }
 
-    // Uncomment this if you're adding some metrics and want to figure out what
-    // was actually set here:
-    //
-    // console.error(JSON.stringify(metrics, null, 2));
-    //
-
-    tGreater('instructionFilesProcessed', 0);
-    tGreater('instructionFilesBad', 0);
-    tGreater('instructionFilesProcessed', 'instructionFilesBad');
-    tGreater('instructionLinesProcessed', 0);
-    tGreater('deleteCountMissing', 0);
-    tGreater('deleteCountTotal', 0);
-    tGreater('deleteTimeSeconds', 0);
-    tGreater('instructionFilesDeleted', 0);
-    tGreater('deleteTimeMinSeconds', 0);
-    tGreater('deleteTimeMaxSeconds', 0);
-    tGreater('deleteTimeMaxSeconds', 'deleteTimeMinSeconds');
-    tGreater('deleteTimeSeconds', 'deleteTimeMaxSeconds');
-    */
+    tGreater('instrFileInvalidCountTotal', 0);
+    tGreater('instrFileUploadAttemptCountTotal', 2);
+    tGreater('instrFileUploadErrorCountTotal', 0);
+    tGreater('instrFileUploadSecondsTotal', 0);
+    tGreater('instrFileUploadSuccessCountTotal', 0);
+    tGreater('instrFileDeleteCountTotal', 0);
+    t.equal(metrics.instrFileDeleteErrorCountTotal, 0,
+        'expected 0 delete errors');
+    tGreater('watchedDirectoryCount', 2);
+    tGreater('runCountTotal', 3);
+    t.equal(metrics.runErrorCountTotal, 0, 'expected no errors running');
+    tGreater('runSecondsTotal', 0);
 
     t.end();
+});
+
+test('stop GarbageUploader', function _testStopUploader(t) {
+    uploader.stop(function _onStop(err) {
+        t.error(err, 'stop GarbageUploader');
+        t.end();
+    });
 });
 
 test('delete testdirs', function _testDeleteTestdirs(t) {
@@ -686,13 +652,6 @@ test('killing nginxes', function _testKillNginxes(t) {
     }
 
     t.end();
-});
-
-test('stop GarbageUploader', function _testStopUploader(t) {
-    uploader.stop(function _onStop(err) {
-        t.error(err, 'stop GarbageUploader');
-        t.end();
-    });
 });
 
 test('dump logs', function _testDumpLogs(t) {
