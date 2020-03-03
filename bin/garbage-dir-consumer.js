@@ -33,17 +33,17 @@
 // and therefore contain everything that's necessary to actually collect garbage
 // on the individual storage/mako zones ("sharks").
 //
-// For the "buckets" project, there is not currently any way to collect garbage
-// (See https://jira.joyent.us/browse/MANTA-4320) but when there is, it has been
-// requested that the garbage be written with separate records per mako from the
-// beginning. If that is done, this program will also never need to be used with
-// "buckets".
 //
-// Config Options:
+// Config Options: (TODO explain what each of these does and how set)
 //
-//  * moray shard(s) info
-//  * frequency of collection
-//  * size of batch
+//  * admin_ip
+//  * datacenter
+//  * dir_shards (array of objects with a 'host' (DNS hostname) property)
+//  * instance
+//  * moray (moray.options.cueballOptions.resolvers)
+//  * record_read_batch_delay
+//  * record_read_batch_size
+//  * server_uuid
 //
 
 var createMetricsManager = require('triton-metrics').createMetricsManager;
@@ -56,6 +56,7 @@ var GarbageDirConsumer = require('../lib/garbage-dir-consumer');
 var elapsedSince = common.elapsedSince;
 var ensureDelegated = common.ensureDelegated;
 
+var METRIC_PREFIX = 'gc_dir_consumer_';
 var METRICS_SERVER_PORT = 8882;
 var SERVICE_NAME = 'garbage-dir-consumer';
 
@@ -142,11 +143,12 @@ function main() {
                     metricsManager.listen(cb);
                     ctx.metricsManager = metricsManager;
                 },
-                function _createDirConsumer(ctx, cb) {
+                function _createDirConsumers(ctx, cb) {
                     var childLog;
                     var idx;
                     var gdc;
                     var shard;
+                    var shards = [];
 
                     if (ctx.config.dir_shards.length < 1) {
                         cb(new Error('No dir-style shards configured for GC.'));
@@ -168,6 +170,7 @@ function main() {
                         gdc = new GarbageDirConsumer({
                             config: ctx.config,
                             log: childLog,
+                            metricPrefix: METRIC_PREFIX,
                             metricsManager: ctx.metricsManager,
                             morayConfig: common.getMorayConfig({
                                 collector: ctx.metricsManager.collector,
@@ -179,7 +182,18 @@ function main() {
                         });
 
                         gdc.start();
+
+                        shards.push(gdc);
                     }
+
+                    ctx.metricsManager.collector
+                        .gauge({
+                            name: METRIC_PREFIX + 'moray_shard_count',
+                            help:
+                                'Number of Moray shards from which this ' +
+                                'garbage-dir-consumer instance is consuming.'
+                        })
+                        .set(shards.length);
 
                     cb();
                 }

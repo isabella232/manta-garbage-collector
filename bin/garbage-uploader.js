@@ -20,7 +20,10 @@
 //
 // Config Options:
 //
-//  * none yet
+//  * admin_ip
+//  * datacenter
+//  * instance
+//  * server_uuid
 //
 //
 // Assumptions:
@@ -41,11 +44,14 @@
 //    can have fs.opendir. In the meantime if it gets too big we'll just start
 //    crashing when trying to read the directory, which we hopefully will
 //    notice. To recover from this, the mako should be fixed so it accepts
-//    files again and then we can move some of the files out of the dir, catch
-//    up and then move the remaining files back in. Not ideal, but should work.
+//    files again (it must have been backed up if our queue is that big) and
+//    then we can move some of the files out of the dir, catch up and then move
+//    the remaining files back in. Not ideal, but should work.
 //
 //
 // Things for future consideration:
+//
+//  - Make concurrency/etc tunable via config file.
 //
 //  - Add support for backing off broken Makos?
 //

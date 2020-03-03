@@ -32,9 +32,17 @@
 // and therefore contain everything that's necessary to actually collect garbage
 // on the individual storage/mako zones ("sharks").
 //
-// Config Options:
 //
-//  * bbuckets-mdapi shard(s) info
+// Config Options: (TODO explain what each of these does and how set)
+//
+//  * admin_ip
+//  * buckets_mdapi (buckets_mdapi.options.cueballOptions.resolvers)
+//  * buckets_shards (array of objects with a 'host' (DNS hostname) property)
+//  * datacenter
+//  * instance
+//  * record_read_batch_delay
+//  * record_read_batch_size
+//  * server_uuid
 //
 
 var createMetricsManager = require('triton-metrics').createMetricsManager;
@@ -46,6 +54,7 @@ var GarbageBucketsConsumer = require('../lib/garbage-buckets-consumer');
 
 var elapsedSince = common.elapsedSince;
 var ensureDelegated = common.ensureDelegated;
+var METRIC_PREFIX = 'gc_buckets_consumer_';
 var METRICS_SERVER_PORT = 8881;
 var SERVICE_NAME = 'garbage-buckets-consumer';
 
@@ -137,6 +146,7 @@ function main() {
                     var idx;
                     var gdc;
                     var shard;
+                    var shards = [];
 
                     if (ctx.config.buckets_shards.length < 1) {
                         cb(new Error('No buckets shards configured for GC.'));
@@ -162,6 +172,7 @@ function main() {
                         gdc = new GarbageBucketsConsumer({
                             config: ctx.config,
                             log: childLog,
+                            metricPrefix: METRIC_PREFIX,
                             metricsManager: ctx.metricsManager,
                             bucketsMdapiConfig: common.getBucketsMdapiConfig({
                                 collector: ctx.metricsManager.collector,
@@ -173,7 +184,18 @@ function main() {
                         });
 
                         gdc.start();
+
+                        shards.push(gdc);
                     }
+
+                    ctx.metricsManager.collector
+                        .gauge({
+                            name: METRIC_PREFIX + 'mdapi_shard_count',
+                            help:
+                                'Number of buckets-mdapi shards from which this ' +
+                                'garbage-buckets-consumer instance is consuming.'
+                        })
+                        .set(shards.length);
 
                     cb();
                 }
