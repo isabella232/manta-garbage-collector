@@ -1,7 +1,7 @@
 {
   "name": "manta-garbage-collector",
   "description": "Manta Garbage Collector",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/joyent/manta-garbage-collector.git"
