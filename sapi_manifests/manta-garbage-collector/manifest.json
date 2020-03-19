@@ -1,4 +1,6 @@
 {
-	"name": "manta-garbage-collector",
-	"path": "/opt/smartdc/manta-garbage-collector/etc/config.json"
+    "name": "manta-garbage-collector",
+    "path": "/opt/smartdc/manta-garbage-collector/etc/config.json",
+    "post_cmd": "/usr/sbin/svcadm restart svc:/manta/application/garbage-*",
+    "master": true
 }

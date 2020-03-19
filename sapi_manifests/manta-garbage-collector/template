@@ -1,75 +1,50 @@
 {
-	"bunyan": {
-		"level": "info"
-	},
-	"manta": {
-		"url": "{{MANTA_URL}}",
-		"user": "{{ADMIN_USERNAME}}",
-		"sign": {
-			"key": "/root/.ssh/id_rsa",
-			"keyId": "{{ADMIN_KEY_ID}}"
-		},
-		"retry": {
-			"attempts": 5,
-			"minTimeout": 1000
-		},
-		"connectTimeout": 1000,
-		"rejectUnauthorized": {{MANTA_REJECT_UNAUTHORIZED}}
-	},
-	"moray": {
-		"options": {
-			"cueballOptions": {
-				"resolvers": [
-					"nameservice.{{{DOMAIN_NAME}}}"
-				]
-			}
-		}
-	},
-	"shards": [{{#GC_ASSIGNED_SHARDS}}
-		{
-			"host": "{{host}}"
-		}{{^last}},{{/last}}{{/GC_ASSIGNED_SHARDS}}
-		{{^GC_ASSIGNED_SHARDS}}
-		{{GC_SHARD_NUM_LO}},
-		{{GC_SHARD_NUM_HI}}
-		{{/GC_ASSIGNED_SHARDS}}
-	],
-	"buckets": [{{#GC_ASSIGNED_BUCKETS}}
-		{
-			"name": "{{name}}"
-		}{{^last}},{{/last}}{{/GC_ASSIGNED_BUCKETS}}
-		{{^GC_ASSIGNED_BUCKETS}}
-		{
-			"name": "manta_fastdelete_queue"
-		}
-		{{/GC_ASSIGNED_BUCKETS}}
-	],
-	"concurrency": {{#GC_CONCURRENCY}}{{GC_CONCURRENCY}}{{/GC_CONCURRENCY}}{{^GC_CONCURRENCY}}{{GC_MANTA_FASTDELETE_QUEUE_CONCURRENCY}}{{/GC_CONCURRENCY}},
-	"allowed_creators": [{{#ACCOUNTS_SNAPLINKS_DISABLED}}
-		{
-			"uuid": "{{uuid}}"
-		}{{^last}},{{/last}}{{/ACCOUNTS_SNAPLINKS_DISABLED}}
-	],
-	"tunables": {
-		"instr_upload_min_batch_size": {{#GC_INSTR_UPLOAD_MIN_BATCH_SIZE}}{{GC_INSTR_UPLOAD_MIN_BATCH_SIZE}}{{/GC_INSTR_UPLOAD_MIN_BATCH_SIZE}}{{^GC_INSTR_UPLOAD_MIN_BATCH_SIZE}}1{{/GC_INSTR_UPLOAD_MIN_BATCH_SIZE}},
-		"instr_upload_batch_size": {{GC_INSTR_UPLOAD_BATCH_SIZE}},
-		"instr_upload_flush_delay": {{GC_INSTR_UPLOAD_FLUSH_DELAY}},
-		"instr_upload_path_prefix": "{{GC_INSTR_UPLOAD_PATH_PREFIX}}",
-		"record_read_batch_size": {{GC_RECORD_READ_BATCH_SIZE}},
-		"record_read_wait_interval": {{GC_RECORD_READ_WAIT_INTERVAL}},
-		"record_read_sort_attr": "{{GC_RECORD_READ_SORT_ATTR}}",
-		"record_read_sort_order": "{{GC_RECORD_READ_SORT_ORDER}}",
-		"record_delete_batch_size": {{GC_RECORD_DELETE_BATCH_SIZE}},
-		"record_delete_delay": {{GC_RECORD_DELETE_DELAY}},
-		"capacity": {{GC_CACHE_CAPACITY}}
-	},
-	"address": "0.0.0.0",
-	"port": 2020,
-	"sapi_url": "{{{SAPI_URL}}}",
-	"instance": "{{auto.ZONENAME}}",
-	"server_uuid": "{{auto.SERVER_UUID}}",
-	"service_name": "{{SERVICE_NAME}}",
-	"shard_service_name": "{{#GC_SHARD_SERVICE_NAME}}{{GC_SHARD_SERVICE_NAME}}{{/GC_SHARD_SERVICE_NAME}}{{^GC_SHARD_SERVICE_NAME}}moray{{/GC_SHARD_SERVICE_NAME}}",
-	"domain": "{{{DOMAIN_NAME}}}",
-	"datacenter": "{{DATACENTER}}"
+    "buckets_mdapi": {
+        "options": {
+            "cueballOptions": {
+                "defaultPort": 2030,
+                "resolvers": [
+                    "nameservice.{{{DOMAIN_NAME}}}"
+                ]
+            }
+        }
+    },
+    "moray": {
+        "options": {
+            "cueballOptions": {
+                "resolvers": [
+                    "nameservice.{{{DOMAIN_NAME}}}"
+                ]
+            }
+        }
+    },
+    "buckets_shards": [{{#GC_ASSIGNED_BUCKETS_SHARDS}}
+        {
+            "host": "{{host}}"
+        }{{^last}},{{/last}}{{/GC_ASSIGNED_BUCKETS_SHARDS}}
+    ],
+    "dir_shards": [{{#GC_ASSIGNED_SHARDS}}
+        {
+            "host": "{{host}}"
+        }{{^last}},{{/last}}{{/GC_ASSIGNED_SHARDS}}
+    ],
+    "options": {
+        {{#GC_DIR_BATCH_SIZE}}
+        "dir_batch_size": {{GC_DIR_BATCH_SIZE}},
+        {{/GC_DIR_BATCH_SIZE}}
+        {{#GC_DIR_BATCH_INTERVAL_MS}}
+        "dir_batch_interval_ms": {{GC_DIR_BATCH_INTERVAL_MS}},
+        {{/GC_DIR_BATCH_INTERVAL_MS}}
+        {{#GC_BUCKETS_BATCH_INTERVAL_MS}}
+        "buckets_batch_interval_ms": {{GC_BUCKETS_BATCH_INTERVAL_MS}},
+        {{/GC_BUCKETS_BATCH_INTERVAL_MS}}
+        "not_an_option": "only here because of JSON trailing comma behavior"
+    },
+    "sapi_url": "{{{SAPI_URL}}}",
+    "instance": "{{auto.ZONENAME}}",
+    "admin_ip": "{{auto.ADMIN_IP}}",
+    "server_uuid": "{{auto.SERVER_UUID}}",
+    "service_name": "{{SERVICE_NAME}}",
+    "domain": "{{{DOMAIN_NAME}}}",
+    "datacenter": "{{DATACENTER}}"
 }
