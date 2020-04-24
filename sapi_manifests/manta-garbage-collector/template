@@ -18,6 +18,16 @@
             }
         }
     },
+    "emoray": {
+        "options": {
+            "srvDomain": "{{ELECTRIC_MORAY}}",
+            "cueballOptions": {
+                "resolvers": [
+                    "nameservice.{{DOMAIN_NAME}}"
+                ]
+            }
+        }
+    },
     "buckets_shards": [{{#GC_ASSIGNED_BUCKETS_SHARDS}}
         {
             "host": "{{host}}"
@@ -38,6 +48,15 @@
         {{#GC_BUCKETS_BATCH_INTERVAL_MS}}
         "buckets_batch_interval_ms": {{GC_BUCKETS_BATCH_INTERVAL_MS}},
         {{/GC_BUCKETS_BATCH_INTERVAL_MS}}
+        {{#GC_MPU_BATCH_INTERVAL_MS}}
+        "mpu_batch_interval_ms": {{GC_MPU_BATCH_INTERVAL_MS}},
+        {{/GC_MPU_BATCH_INTERVAL_MS}}
+        {{#GC_MPU_CLEANUP_AGE_SECONDS}}
+        "mpu_cleanup_age_seconds": {{GC_MPU_CLEANUP_AGE_SECONDS}},
+        {{/GC_MPU_CLEANUP_AGE_SECONDS}}
+        {{#GC_MPU_BATCH_SIZE}}
+        "mpu_batch_size": {{GC_MPU_BATCH_SIZE}},
+        {{/GC_MPU_BATCH_SIZE}}
         "not_an_option": "only here because of JSON trailing comma behavior"
     },
     "sapi_url": "{{{SAPI_URL}}}",

@@ -15,7 +15,7 @@
     "forkexec": "1.1.0",
     "jsprim": "2.0.0",
     "kthxbai": "0.4.0",
-    "moray": "3.5.0",
+    "moray": "4.0.0",
     "restify": "4.3.4",
     "restify-clients": "2.6.6",
     "@smaller/tap": "11.1.4-1.0.0",

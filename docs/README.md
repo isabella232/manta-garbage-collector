@@ -223,18 +223,48 @@ command.
 There are currently the following tunables available for setting in SAPI for the
 `garbage-collector` service:
 
- * `GC_DIR_BATCH_SIZE` - The number of records to read each time a GC batch is
-   requested from Moray by the `garbage-dir-consumer`. This value will be used
-   as the `limit:` parameter in the findObjects requests. Do not set this to
-   more than 1000.
-
- * `GC_DIR_BATCH_INTERVAL_MS` - The number of milliseconds that
-   `garbage-dir-consumer` will wait between GC batch collections from Moray.
-   Increasing this will decrease the frequency of requests.
-
  * `GC_BUCKETS_BATCH_INTERVAL_MS` - The number of milliseconds that
    `garbage-buckets-consumer` will wait between GC batch collections from
    buckets-mdapi. Increasing this value will decrease the frequency of requests.
+   In the config file this parameter is `options.buckets_batch_interval_ms`.
+   The default value is 60000 (1 minute).
+
+ * `GC_DIR_BATCH_SIZE` - The number of records to read each time a GC batch is
+   requested from Moray by the `garbage-dir-consumer`. This value will be used
+   as the `limit:` parameter in the findObjects requests. Do not set this to
+   more than 1000. In the config file this parameter is
+   `options.dir_batch_size`. The default value is 200.
+
+ * `GC_DIR_BATCH_INTERVAL_MS` - The number of milliseconds that
+   `garbage-dir-consumer` will wait between GC batch collections from Moray.
+   Increasing this will decrease the frequency of requests. In the config file
+   this option is `options.dir_batch_interval_ms`. The default value is 60000 (1
+   minute).
+
+ * `GC_MPU_BATCH_INTERVAL_MS` - The number of milliseconds that
+   `garbage-mpu-cleaner` will wait after each run before we start the next one.
+   Longer values will decrease the frequency of queries to Moray and Electric
+   Moray at the expense of longer delays between `mpu commit` or `mpu abort` and
+   garbage collection. In the config file this option is
+   `options.mpu_batch_interval_ms`. The default value is 60000 (1 minute).
+
+ * `GC_MPU_BATCH_SIZE` - The number of MPU finalize records (manta_uploads Moray
+   bucket) to read on each "run" of the `garbage-mpu-cleaner`. Increasing this
+   will cause the `garbage-mpu-cleaner` to collect more garbage on each run
+   which will increase the load on Moray and Electric Moray but will allow more
+   garbage to be processed on each run. In the config file this option is
+   `options.mpu_batch_size`. The default value is 200.
+
+ * `GC_MPU_CLEANUP_AGE_SECONDS` - The number of seconds old a `manta_upload`
+   record needs to be before it is cleaned up by `garbage-mpu-cleaner`.
+   These records are required in order for the upload to be visible in for
+   example an `mmpu list`. Once the record has been "cleaned", it will no longer
+   appear as an "upload". As such, we need to provide a window after `commit` or
+   `abort` where the user can still view their upload status before we clean the
+   record up. Increasing this value will increase the length of time before
+   garbage is cleaned up. In the config file this option is
+   `options.mpu_cleanup_age_seconds`. The default value is 300 (5 minutes).
+
 
 In order to set these values you can use the commands on the headnode:
 
@@ -246,4 +276,8 @@ echo "{\"metadata\": {\"GC_DIR_BATCH_SIZE\": 200}}" \
 
 Replacing `GC_DIR_BATCH_SIZE` with one of the valid tunables above, and
 replacing the number `200` with the intended value of that tunable.
+
+If you set these in SAPI, `config-agent` will update the appropriate config file
+paramter in the config file which lives at
+`/opt/smartdc/manta-garbage-collector/etc/config.json`.
 

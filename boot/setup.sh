@@ -91,6 +91,7 @@ fi
 for svc in \
     garbage-buckets-consumer \
     garbage-dir-consumer \
+    garbage-mpu-cleaner \
     garbage-uploader \
     ; do
 
@@ -103,10 +104,11 @@ done
 #
 # metricPorts are scraped by cmon-agent for prometheus metrics.
 #
-mdata-put metricPorts "8881,8882,8883"
+mdata-put metricPorts "8881,8882,8883,8884"
 
 manta_common2_setup_log_rotation "garbage-uploader"
 manta_common2_setup_log_rotation "garbage-dir-consumer"
 manta_common2_setup_log_rotation "garbage-buckets-consumer"
+manta_common2_setup_log_rotation "garbage-mpu-cleaner"
 
 manta_common2_setup_end
