@@ -5,7 +5,7 @@
 #
 
 #
-# Copyright 2019 Joyent, Inc.
+# Copyright 2020 Joyent, Inc.
 #
 
 #
@@ -124,6 +124,9 @@ BASE_IMAGE_UUID		= 04a48d7d-6bb5-4e83-8c3b-e60a99e0f48f
 BUILDIMAGE_NAME		= mantav1-garbage-collector
 BUILDIMAGE_DESC		= Manta Garbage Collector
 AGENTS = amon config registrar
+
+# For mantav1, specify the branch to compare copyrights with
+ENGBLD_CHECK_COPYRIGHT_ARGS = -b mantav1
 
 .PHONY: all
 all: $(STAMP_NODE_PREBUILT) $(STAMP_NODE_MODULES) install
