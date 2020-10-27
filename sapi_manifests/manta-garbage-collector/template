@@ -39,6 +39,15 @@
         }{{^last}},{{/last}}{{/GC_ASSIGNED_SHARDS}}
     ],
     "options": {
+        {{#GC_DIR_SLOW_PUT_CUTOFF}}
+        "dir_slow_put_cutoff": {{GC_DIR_SLOW_PUT_CUTOFF}},
+        {{/GC_DIR_SLOW_PUT_CUTOFF}}
+        {{#GC_DIR_SLOW_PUT_MAX_FAILURES}}
+        "dir_slow_put_max_failures": {{GC_DIR_SLOW_PUT_MAX_FAILURES}},
+        {{/GC_DIR_SLOW_PUT_MAX_FAILURES}}
+        {{#GC_DIR_SLOW_PUT_DISABLE_TIME}}
+        "dir_slow_put_disable_time": {{GC_DIR_SLOW_PUT_DISABLE_TIME}},
+        {{/GC_DIR_SLOW_PUT_DISABLE_TIME}}
         {{#GC_DIR_BATCH_SIZE}}
         "dir_batch_size": {{GC_DIR_BATCH_SIZE}},
         {{/GC_DIR_BATCH_SIZE}}

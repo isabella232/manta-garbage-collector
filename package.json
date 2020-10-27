@@ -1,7 +1,7 @@
 {
   "name": "manta-garbage-collector",
   "description": "Manta Garbage Collector",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/joyent/manta-garbage-collector.git"
@@ -12,6 +12,7 @@
     "assert-plus": "1.0.0",
     "buckets-mdapi": "git+https://github.com/joyent/node-buckets-mdapi.git#v0.6.0",
     "bunyan": "1.8.12",
+    "dtrace-provider": "0.8.8",
     "forkexec": "1.1.0",
     "jsprim": "2.0.0",
     "kthxbai": "0.4.0",

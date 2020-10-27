@@ -265,6 +265,29 @@ There are currently the following tunables available for setting in SAPI for the
    garbage is cleaned up. In the config file this option is
    `options.mpu_cleanup_age_seconds`. The default value is 300 (5 minutes).
 
+ * `GC_DIR_SLOW_PUT_CUTOFF` - The number of seconds that a PUT can take when
+   failing before we consider the PUT to be a "slow" PUT. This exists to catch
+   cases like storageIds that have been removed from DNS and are continually
+   failing due to timing out. If a PUT fails and it has taken longer than
+   `GC_DIR_SLOW_PUT_CUTOFF` seconds before it fails, it will be marked slow. If
+   there are more than `GC_DIR_SLOW_PUT_MAX_FAILURES` consecutive "slow"
+   failures, further PUT requests to this server will be stopped for
+   `GC_DIR_SLOW_PUT_DISABLE_TIME` milliseconds or until the process is
+   restarted.
+
+ * `GC_DIR_SLOW_PUT_MAX_FAILURES` - The number of consecutive "slow" PUT
+   failures that will cause a storageId to be disabled. While disabled a server
+   will not be receiving instruction files. The counter will reset when either
+   the process is restarted, a successful PUT occurs or if it has been disabled,
+   when the `GC_DIR_SLOW_PUT_DISABLE_TIME` has elapsed since it was disabled.
+
+ * `GC_DIR_SLOW_PUT_DISABLE_TIME` - When more than
+   `GC_DIR_SLOW_PUT_MAX_FAILURES` consecutive "slow" PUT failures have been
+   recorded (see descriptions of the two options above) uploads of instructions
+   to a server will be disabled. After `GC_DIR_SLOW_PUT_DISABLE_TIME`
+   milliseconds, uploads will be re-enabled to the server. If the server is
+   still unresponsive, it's likely to again have consecutive failures and once
+   again be disabled.
 
 In order to set these values you can use the commands on the headnode:
 

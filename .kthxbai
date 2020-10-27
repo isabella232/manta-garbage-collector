@@ -29,8 +29,12 @@
 
 # dtrace-provider
 **/dtrace-provider/build/{config.gypi,*.target.mk,gyp-flock-tool,binding.Makefile}
-**/dtrace-provider/build/Release/{.deps,obj.target,linker.lock}
-**/dtrace-provider/!(build|package.json|dtrace-provider.js|LICENSE)
+**/dtrace-provider/build/Release/{.deps,linker.lock}
+**/dtrace-provider/!(src|build|package.json|dtrace-provider.js|LICENSE)
+**/dtrace-provider/src/{*.cc,*.h}
+**/dtrace-provider/src/build/{config.gypi,*.target.mk,gyp-flock-tool,binding.Makefile}
+**/dtrace-provider/src/build/Release/{.deps,linker.lock}
+**/dtrace-provider/src/build/Release/obj.target/DTraceProviderBindings/*.o
 **/dtrace-provider/package.json.rej
 
 # We don't even use yarn here.
